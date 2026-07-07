@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Админ Панел - Дигитално Меню</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 text-gray-950 font-sans min-h-screen flex flex-col">
+
+    <!-- ХЕДЪР -->
+    <header class="bg-slate-800 text-white py-4 px-6 shadow-md flex justify-between items-center">
+        <h1 class="text-lg font-black tracking-wide">⚙️ Меню Мениджър</h1>
+        <div class="flex items-center gap-2">
+            <!-- БУТОН ЗА ВРЪЩАНЕ КЪМ МЕНЮТО -->
+            <a href="index.html" class="bg-slate-600 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition decoration-none">
+                👁️ Към менюто
+            </a>
+            <button id="logout-btn" class="hidden bg-red-600 hover:bg-red-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
+                Изход
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col justify-center">
+        
+        <!-- ФОРМА ЗА ВХОД -->
+        <div id="login-card" class="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full mx-auto space-y-4">
+            <div class="text-center">
+                <h2 class="text-xl font-extrabold text-slate-800">Вход в системата</h2>
+                <p class="text-xs text-gray-500 mt-1">Въведете вашите админ данни</p>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Имейл</label>
+                    <input type="email" id="login-email" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="admin@beachbar.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Парола</label>
+                    <input type="password" id="login-password" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="••••••••">
+                </div>
+                <button id="login-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer">
+                    Влез в таблото
+                </button>
+                <p id="login-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
+            </div>
+        </div>
+
+        <!-- АДМИН ТАБЛО -->
+        <div id="admin-dashboard" class="hidden space-y-6 w-full">
+            
+            <!-- НАСТРОЙКА НА ИМЕ НА ЗАВЕДЕНИЕ -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                <div class="w-full sm:w-auto">
+                    <label class="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">Име на заведението:</label>
+                    <input type="text" id="restaurant-name-input" placeholder="напр. Beach Bar Nirvana" class="w-full sm:w-80 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-slate-500">
+                </div>
+                <button id="save-res-name-btn" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer">
+                    💾 Запази името
+                </button>
+            </div>
+
+            <!-- НАСТРОЙКА НА ФОН НА МЕНЮТО -->
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
+                <label class="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Фон на менюто (незадължително):</label>
+                <div class="flex flex-col sm:flex-row gap-3 items-center">
+                    <input type="file" id="bg-image-file" accept="image/*" class="flex-1 w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-slate-500">
+                    <img id="bg-image-preview" src="" class="w-16 h-16 object-cover rounded-lg hidden">
+                    <button id="save-bg-btn" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer whitespace-nowrap">
+                        🖼️ Запази фона
+                    </button>
+                    <button id="remove-bg-btn" class="w-full sm:w-auto text-red-500 text-xs font-bold px-2 cursor-pointer whitespace-nowrap">
+                        Премахни
+                    </button>
+                </div>
+                <p class="text-[11px] text-gray-400 mt-2">Ако не качиш нищо, менюто ползва морски пейзаж по подразбиране.</p>
+            </div>
+            
+            <!-- ФОРМА ЗА ДОБАВЯНЕ / РЕДАКТИРАНЕ -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+                <h3 id="form-title" class="text-sm font-black text-slate-800 uppercase tracking-wider mb-4 border-l-3 border-amber-600 pl-2">Добавяне на нов артикул</h3>
+                <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <input type="hidden" id="item-id">
+                    
+                    <input type="text" id="item-name" placeholder="Име (напр. Фрапе)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
+                    <input type="text" id="item-category" placeholder="Категория (напр. Напитки)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
+                    <input type="number" step="0.01" id="item-price" placeholder="Цена в € (напр. 4.50)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
+                    <input type="text" id="item-desc" placeholder="Описание (съставки, грамаж)" class="md:col-span-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
+
+                    <div class="md:col-span-2 flex items-center gap-3">
+                        <input type="file" id="item-image-file" accept="image/*" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-slate-500">
+                        <input type="hidden" id="item-image">
+                        <img id="item-image-preview" src="" class="w-10 h-10 object-cover rounded-lg hidden">
+                    </div>
+
+                    <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
+                        <input type="checkbox" id="item-available" checked class="w-4 h-4">
+                        <label for="item-available" class="text-sm font-bold text-slate-700">Наличен</label>
+                    </div>
+
+                    <button type="submit" id="submit-form-btn" class="md:col-span-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-sm transition shadow-xs cursor-pointer">
+                        ➕ Добави към менюто
+                    </button>
+                </form>
+            </div>
+
+            <!-- СПИСЪК / ТАБЛИЦА -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-gray-100 flex justify-between items-center">
+                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">Текущи артикули в менюто</h3>
+                    <span id="items-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 позиции</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                            <tr>
+                                <th class="p-3">Снимка</th>
+                                <th class="p-3">Артикул</th>
+                                <th class="p-3">Категория</th>
+                                <th class="p-3">Цена</th>
+                                <th class="p-3 text-center">Статус</th>
+                                <th class="p-3 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="admin-items-table" class="divide-y divide-gray-100">
+                            <!-- Динамични редове -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Добави това преди </body> -->
+    <script src="admin.js"></script>
+</body>
+</html>

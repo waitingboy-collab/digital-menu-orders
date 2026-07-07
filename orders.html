@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Поръчки - Дигитално Меню</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-100 text-gray-950 font-sans min-h-screen flex flex-col">
+
+    <!-- ХЕДЪР -->
+    <header class="bg-slate-800 text-white py-4 px-6 shadow-md flex justify-between items-center">
+        <h1 class="text-lg font-black tracking-wide">🧾 Активни поръчки</h1>
+        <div class="flex items-center gap-2">
+            <a href="admin.html" class="bg-slate-600 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                ⚙️ Админ панел
+            </a>
+            <button id="logout-btn" class="hidden bg-red-600 hover:bg-red-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
+                Изход
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-center">
+
+        <!-- ФОРМА ЗА ВХОД -->
+        <div id="login-card" class="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full mx-auto space-y-4">
+            <div class="text-center">
+                <h2 class="text-xl font-extrabold text-slate-800">Вход на персонала</h2>
+                <p class="text-xs text-gray-500 mt-1">Въведете вашите админ данни</p>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Имейл</label>
+                    <input type="email" id="login-email" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="admin@beachbar.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Парола</label>
+                    <input type="password" id="login-password" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="••••••••">
+                </div>
+                <button id="login-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer">
+                    Влез в таблото
+                </button>
+                <p id="login-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
+            </div>
+        </div>
+
+        <!-- ТАБЛО С ПОРЪЧКИ -->
+        <div id="orders-dashboard" class="hidden w-full space-y-4">
+            <div class="flex items-center justify-between">
+                <span id="orders-count" class="text-xs bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded-full">0 активни</span>
+                <span id="live-indicator" class="text-xs text-green-600 font-bold flex items-center gap-1">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> На живо
+                </span>
+            </div>
+
+            <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Динамични карти с поръчки -->
+            </div>
+
+            <div id="empty-orders" class="hidden text-center py-16 text-gray-400 text-sm">
+                Няма активни поръчки в момента. 🎉
+            </div>
+        </div>
+    </main>
+
+    <script src="orders.js"></script>
+</body>
+</html>
