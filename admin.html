@@ -140,6 +140,55 @@
                 </div>
             </div>
 
+            <!-- СТАТИСТИКА НА ПРОДАЖБИТЕ -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📊 Статистика на продажбите</h3>
+                    <div class="flex items-center gap-2">
+                        <select id="stats-period" class="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-slate-500">
+                            <option value="today">Днес</option>
+                            <option value="week">Последните 7 дни</option>
+                            <option value="month">Последните 30 дни</option>
+                            <option value="all">Всичко</option>
+                        </select>
+                        <button id="stats-refresh-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
+                            Опресни
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div id="stats-summary" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                        <div class="bg-slate-50 rounded-xl p-3 text-center">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase">Поръчки</p>
+                            <p id="stats-orders-count" class="text-xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3 text-center">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase">Продадени бр.</p>
+                            <p id="stats-items-count" class="text-xl font-black text-slate-800">0</p>
+                        </div>
+                        <div class="bg-slate-50 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
+                            <p class="text-[10px] font-bold text-gray-400 uppercase">Оборот</p>
+                            <p id="stats-total-revenue" class="text-xl font-black text-amber-600">0.00 €</p>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                                <tr>
+                                    <th class="p-2">Артикул</th>
+                                    <th class="p-2 text-center">Продадени бр.</th>
+                                    <th class="p-2 text-right">Оборот</th>
+                                </tr>
+                            </thead>
+                            <tbody id="stats-items-table" class="divide-y divide-gray-100">
+                                <!-- Динамични редове -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <p id="stats-empty" class="hidden text-center text-gray-400 text-sm py-6">Няма завършени поръчки за избрания период.</p>
+                </div>
+            </div>
+
         </div>
     </main>
 
