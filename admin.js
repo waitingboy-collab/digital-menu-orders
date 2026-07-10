@@ -25,12 +25,25 @@ async function fetchAndRender() {
                 ? `<img src="${item.image_url}" alt="" class="w-12 h-12 object-cover rounded-md">`
                 : `<div class="w-12 h-12 rounded-md bg-gray-100 flex items-center justify-center text-gray-300 text-xs">няма</div>`;
 
+            const hasStock = item.quantity !== null && item.quantity !== undefined;
+            const qty = hasStock ? item.quantity : null;
+            const stockCell = hasStock ? `
+                <div class="flex items-center justify-center gap-1.5">
+                    <button onclick="adjustStock('${item.id}', ${qty}, -1)"
+                        class="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-xs cursor-pointer">−</button>
+                    <span class="font-bold text-sm w-6 text-center ${qty === 0 ? 'text-red-600' : 'text-slate-700'}">${qty}</span>
+                    <button onclick="adjustStock('${item.id}', ${qty}, 1)"
+                        class="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-xs cursor-pointer">+</button>
+                </div>
+            ` : `<span class="text-xs text-gray-400">∞</span>`;
+
             tbody.innerHTML += `
                 <tr class="border-b">
                     <td class="p-3">${thumb}</td>
                     <td class="p-3">${item.name || ''}</td>
                     <td class="p-3">${item.category || ''}</td>
                     <td class="p-3 font-bold">€${item.price || '0'}</td>
+                    <td class="p-3 text-center">${stockCell}</td>
                     <td class="p-3 text-center">
                         <button onclick="toggleAvailability('${item.id}', ${available})"
                             class="px-2 py-1 rounded-full text-xs font-semibold ${available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
@@ -38,13 +51,28 @@ async function fetchAndRender() {
                         </button>
                     </td>
                     <td class="p-3 text-right">
-                        <button onclick="editItem('${item.id}', '${item.name || ''}', '${item.category || ''}', ${item.price || 0}, '${item.description || ''}', '${item.image_url || ''}', ${available})" class="text-blue-600 mr-4">Редактирай</button>
+                        <button onclick="editItem('${item.id}', '${item.name || ''}', '${item.category || ''}', ${item.price || 0}, '${item.description || ''}', '${item.image_url || ''}', ${available}, ${qty === null ? 'null' : qty})" class="text-blue-600 mr-4">Редактирай</button>
                         <button onclick="deleteItem('${item.id}')" class="text-red-600">Изтрий</button>
                     </td>
                 </tr>`;
         });
     }
 }
+
+// Бърза промяна на наличността директно от таблицата (+1 / -1)
+window.adjustStock = async (id, currentQty, delta) => {
+    const newQty = Math.max(0, currentQty + delta);
+    const { error } = await supabaseClient
+        .from("menu_items")
+        .update({ quantity: newQty })
+        .eq("id", id);
+
+    if (error) {
+        alert("Грешка при промяна на наличността: " + error.message);
+        return;
+    }
+    fetchAndRender();
+};
 
 // Бързо превключване на наличност директно от таблицата
 window.toggleAvailability = async (id, currentlyAvailable) => {
@@ -137,13 +165,16 @@ async function uploadImageIfSelected() {
 }
 
 // Функция за редактиране (прехвърля данните във формата)
-window.editItem = (id, name, cat, price, desc, img, available) => {
+window.editItem = (id, name, cat, price, desc, img, available, qty) => {
     document.getElementById("item-id").value = id;
     document.getElementById("item-name").value = name;
     document.getElementById("item-category").value = cat;
     document.getElementById("item-price").value = price;
     document.getElementById("item-desc").value = desc;
     document.getElementById("item-image").value = img;
+
+    const qtyInput = document.getElementById("item-quantity");
+    if (qtyInput) qtyInput.value = (qty === null || qty === undefined) ? "" : qty;
 
     const availCheckbox = document.getElementById("item-available");
     if (availCheckbox) availCheckbox.checked = available;
@@ -365,6 +396,8 @@ document.addEventListener("DOMContentLoaded", () => {
             const id = document.getElementById("item-id").value;
             const imageUrl = await uploadImageIfSelected();
             const availCheckbox = document.getElementById("item-available");
+            const qtyInput = document.getElementById("item-quantity");
+            const qtyRaw = qtyInput ? qtyInput.value.trim() : "";
 
             const data = {
                 name: document.getElementById("item-name").value,
@@ -372,7 +405,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 price: parseFloat(document.getElementById("item-price").value),
                 description: document.getElementById("item-desc").value,
                 image_url: imageUrl,
-                is_available: availCheckbox ? availCheckbox.checked : true
+                is_available: availCheckbox ? availCheckbox.checked : true,
+                quantity: qtyRaw === "" ? null : parseInt(qtyRaw, 10)
             };
 
             if (id) {
