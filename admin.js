@@ -343,6 +343,93 @@ async function removeBackgroundImage() {
     alert("Фонът е премахнат.");
 }
 
+// ---------- Статистика на продажбите ----------
+function getStatsStartDate(period) {
+    const now = new Date();
+    if (period === "today") {
+        const start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        return start.toISOString();
+    }
+    if (period === "week") {
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    }
+    if (period === "month") {
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+    }
+    return null; // "all"
+}
+
+async function loadSalesStats() {
+    const periodSelect = document.getElementById("stats-period");
+    const period = periodSelect ? periodSelect.value : "today";
+    const startIso = getStatsStartDate(period);
+
+    let query = supabaseClient
+        .from("orders")
+        .select("*")
+        .eq("status", "done");
+
+    if (startIso) {
+        query = query.gte("created_at", startIso);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+        console.error("Грешка при зареждане на статистиката:", error.message);
+        return;
+    }
+
+    const orders = data || [];
+    const perItem = {}; // { name: { qty, revenue } }
+    let totalRevenue = 0;
+    let totalItemsSold = 0;
+
+    orders.forEach(order => {
+        const items = Array.isArray(order.items) ? order.items : [];
+        items.forEach(it => {
+            const name = it.name || "Без име";
+            const qty = Number(it.qty) || 0;
+            const revenue = (Number(it.price) || 0) * qty;
+
+            if (!perItem[name]) perItem[name] = { qty: 0, revenue: 0 };
+            perItem[name].qty += qty;
+            perItem[name].revenue += revenue;
+
+            totalItemsSold += qty;
+            totalRevenue += revenue;
+        });
+    });
+
+    const ordersCountEl = document.getElementById("stats-orders-count");
+    const itemsCountEl = document.getElementById("stats-items-count");
+    const totalRevenueEl = document.getElementById("stats-total-revenue");
+    if (ordersCountEl) ordersCountEl.textContent = orders.length;
+    if (itemsCountEl) itemsCountEl.textContent = totalItemsSold;
+    if (totalRevenueEl) totalRevenueEl.textContent = totalRevenue.toFixed(2) + " €";
+
+    const tbody = document.getElementById("stats-items-table");
+    const emptyEl = document.getElementById("stats-empty");
+    if (!tbody) return;
+
+    const sortedItems = Object.entries(perItem).sort((a, b) => b[1].qty - a[1].qty);
+
+    if (sortedItems.length === 0) {
+        tbody.innerHTML = "";
+        if (emptyEl) emptyEl.classList.remove("hidden");
+        return;
+    }
+    if (emptyEl) emptyEl.classList.add("hidden");
+
+    tbody.innerHTML = sortedItems.map(([name, stats]) => `
+        <tr>
+            <td class="p-2">${name}</td>
+            <td class="p-2 text-center font-bold">${stats.qty}</td>
+            <td class="p-2 text-right font-bold text-amber-600">${stats.revenue.toFixed(2)} €</td>
+        </tr>
+    `).join('');
+}
+
 // Инициализация при зареждане на DOM
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("login-btn");
@@ -365,9 +452,16 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetchAndRender();
                 loadRestaurantName();
                 loadBackgroundImage();
+                loadSalesStats();
             }
         });
     }
+
+    // Логика за статистиката на продажбите
+    const statsRefreshBtn = document.getElementById("stats-refresh-btn");
+    if (statsRefreshBtn) statsRefreshBtn.addEventListener("click", loadSalesStats);
+    const statsPeriodSelect = document.getElementById("stats-period");
+    if (statsPeriodSelect) statsPeriodSelect.addEventListener("change", loadSalesStats);
 
     // Логика за запазване на името на заведението
     const saveResNameBtn = document.getElementById("save-res-name-btn");
