@@ -92,6 +92,11 @@
                     <input type="number" step="0.01" id="item-price" placeholder="Цена в € (напр. 4.50)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
                     <input type="text" id="item-desc" placeholder="Описание (съставки, грамаж)" class="md:col-span-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
 
+                    <div>
+                        <input type="number" step="1" min="0" id="item-quantity" placeholder="Наличност (бр.)" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
+                        <p class="text-[10px] text-gray-400 mt-1 pl-1">Остави празно = неограничено количество</p>
+                    </div>
+
                     <div class="md:col-span-2 flex items-center gap-3">
                         <input type="file" id="item-image-file" accept="image/*" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-slate-500">
                         <input type="hidden" id="item-image">
@@ -123,6 +128,7 @@
                                 <th class="p-3">Артикул</th>
                                 <th class="p-3">Категория</th>
                                 <th class="p-3">Цена</th>
+                                <th class="p-3 text-center">Наличност</th>
                                 <th class="p-3 text-center">Статус</th>
                                 <th class="p-3 text-right">Действия</th>
                             </tr>
