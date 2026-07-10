@@ -77,7 +77,12 @@ function renderMenu() {
         return;
     }
 
-    container.innerHTML = visibleItems.map(item => `
+    container.innerHTML = visibleItems.map(item => {
+        const hasStock = item.quantity !== null && item.quantity !== undefined;
+        const lowStock = hasStock && item.quantity > 0 && item.quantity <= 3;
+        const stockNote = lowStock ? `<p class="text-xs text-orange-500 font-bold mt-1">Остават: ${item.quantity} бр.</p>` : '';
+
+        return `
         <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer relative" data-open-item="${item.id}">
             ${item.image_url ? `
             <img src="${item.image_url}" alt="${item.name || ''}"
@@ -86,13 +91,15 @@ function renderMenu() {
             ` : ''}
             <h3 class="text-lg font-bold">${item.name || 'Без име'}</h3>
             <p class="text-sm text-gray-500">${item.description || ''}</p>
+            ${stockNote}
             <div class="flex items-center justify-between mt-2">
                 <p class="text-amber-600 font-bold">${parseFloat(item.price).toFixed(2)} €</p>
                 <button type="button" data-quick-add="${item.id}"
                     class="bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-bold w-8 h-8 rounded-full cursor-pointer">+</button>
             </div>
         </div>
-    `).join('');
+    `;
+    }).join('');
 
     container.querySelectorAll("[data-open-item]").forEach(el => {
         el.addEventListener("click", () => openItemModal(el.getAttribute("data-open-item")));
@@ -299,11 +306,37 @@ async function submitOrder() {
     closeCartModal();
     if (tableInput) tableInput.value = "";
 
+    // Намалява наличността на всеки поръчан артикул (не пречи на потвърждението, ако част не успее)
+    Promise.all(orderItems.map(orderItem =>
+        supabaseClient.rpc("decrement_menu_stock", { item_id: orderItem.id, qty: orderItem.qty })
+            .then(({ error: rpcError }) => {
+                if (rpcError) console.error("Грешка при намаляване на наличността:", rpcError.message);
+            })
+    )).then(() => refreshMenuItems());
+
     const successModal = document.getElementById("order-success-modal");
     if (successModal) {
         successModal.classList.remove("hidden");
         successModal.classList.add("flex");
     }
+}
+
+// Зарежда/презарежда само артикулите (без да пипа event listeners) - използва се и за опресняване след поръчка
+async function refreshMenuItems() {
+    const { data, error } = await supabaseClient
+        .from("menu_items")
+        .select("*")
+        .eq("is_available", true)
+        .or("quantity.is.null,quantity.gt.0");
+
+    if (error) {
+        console.error("Грешка при зареждане на менюто:", error.message);
+        return;
+    }
+
+    cachedItems = data || [];
+    renderCategoryButtons();
+    renderMenu();
 }
 
 async function loadMenu() {
@@ -394,20 +427,8 @@ async function loadMenu() {
             if (bgSun) bgSun.classList.add("hidden");
         }
 
-        // 2. Вземане на менюто
-        const { data, error } = await supabaseClient
-            .from("menu_items")
-            .select("*")
-            .eq("is_available", true);
-
-        if (error) {
-            container.innerHTML = `<p style="color:red; text-align:center;">Грешка: ${error.message}</p>`;
-            return;
-        }
-
-        cachedItems = data || [];
-        renderCategoryButtons();
-        renderMenu();
+        // 2. Вземане на менюто (само наличните и с ненулева наличност)
+        await refreshMenuItems();
     } catch (e) {
         console.error("Критична грешка:", e);
     }
