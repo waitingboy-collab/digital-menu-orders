@@ -430,6 +430,177 @@ async function loadSalesStats() {
     `).join('');
 }
 
+// ============================================================
+// СКЛАД
+// ============================================================
+
+let receiptLineCount = 0;
+let cachedInventoryItems = []; // за попълване на select-ите в реда
+
+function stockLevelInfo(item) {
+    if (!item.min_stock_alert || item.min_stock_alert <= 0) {
+        return { label: "Наред", cls: "bg-green-100 text-green-700" };
+    }
+    const ratio = item.current_stock / item.min_stock_alert;
+    if (ratio <= 1) return { label: "Критично", cls: "bg-red-100 text-red-700" };
+    if (ratio <= 1.6) return { label: "Ниско", cls: "bg-amber-100 text-amber-700" };
+    return { label: "Наред", cls: "bg-green-100 text-green-700" };
+}
+
+// Зарежда и показва наличностите
+async function fetchAndRenderInventory() {
+    const { data, error } = await supabaseClient
+        .from("inventory_items")
+        .select("*")
+        .order("name");
+
+    if (error) {
+        console.error("Грешка при зареждане на склада:", error.message);
+        return;
+    }
+
+    cachedInventoryItems = data || [];
+
+    const tbody = document.getElementById("inventory-table");
+    const countEl = document.getElementById("inventory-count");
+    if (countEl) countEl.textContent = `${cachedInventoryItems.length} артикула`;
+
+    if (tbody) {
+        tbody.innerHTML = cachedInventoryItems.map(item => {
+            const level = stockLevelInfo(item);
+            const price = item.last_purchase_price != null ? `${Number(item.last_purchase_price).toFixed(2)} €` : "—";
+            return `
+                <tr>
+                    <td class="p-3 font-bold">${item.name}</td>
+                    <td class="p-3 text-center">${item.current_stock} ${item.unit || 'бр'}</td>
+                    <td class="p-3">
+                        <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${level.cls}">${level.label}</span>
+                    </td>
+                    <td class="p-3 text-right">${price}</td>
+                </tr>`;
+        }).join('');
+    }
+
+    populateReceiptLineSelects();
+}
+
+// Зарежда доставчиците в select-а на формата
+async function loadSuppliersIntoForm() {
+    const select = document.getElementById("receipt-supplier");
+    if (!select) return;
+
+    const { data, error } = await supabaseClient.from("suppliers").select("*").order("name");
+    if (error) {
+        console.error("Грешка при зареждане на доставчици:", error.message);
+        return;
+    }
+
+    select.innerHTML = `<option value="">— без доставчик —</option>` +
+        (data || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+}
+
+// Добавя нов ред в списъка "Артикули" във формата за зареждане
+function addReceiptLine() {
+    receiptLineCount++;
+    const id = `line-${receiptLineCount}`;
+    const container = document.getElementById("receipt-lines");
+    if (!container) return;
+
+    const options = cachedInventoryItems.map(it => `<option value="${it.id}">${it.name}</option>`).join('');
+
+    const row = document.createElement("div");
+    row.id = id;
+    row.className = "flex items-center gap-2";
+    row.innerHTML = `
+        <select class="receipt-line-item flex-1 bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-slate-500">
+            ${options}
+        </select>
+        <input type="number" step="0.01" min="0" placeholder="Кол." class="receipt-line-qty w-20 bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-slate-500">
+        <input type="number" step="0.01" min="0" placeholder="Цена €" class="receipt-line-price w-24 bg-white border border-gray-200 rounded-xl px-2 py-2 text-sm focus:outline-slate-500">
+        <button type="button" class="remove-line-btn text-red-500 hover:text-red-700 font-bold px-1 cursor-pointer">✕</button>
+    `;
+    container.appendChild(row);
+
+    row.querySelector(".remove-line-btn").addEventListener("click", () => row.remove());
+}
+
+function populateReceiptLineSelects() {
+    // Обновява опциите във вече съществуващи редове, ако артикулите са се презаредили
+    document.querySelectorAll(".receipt-line-item").forEach(select => {
+        const current = select.value;
+        select.innerHTML = cachedInventoryItems.map(it => `<option value="${it.id}">${it.name}</option>`).join('');
+        if (current) select.value = current;
+    });
+}
+
+// Записва зареждането — глава + редове; тригерът в базата обновява наличността автоматично
+async function submitReceipt() {
+    const errorEl = document.getElementById("receipt-error");
+    const saveBtn = document.getElementById("save-receipt-btn");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const supplierId = document.getElementById("receipt-supplier").value || null;
+    const invoiceNumber = document.getElementById("receipt-invoice").value.trim() || null;
+
+    const lineRows = document.querySelectorAll("#receipt-lines > div");
+    const lines = [];
+    lineRows.forEach(row => {
+        const itemId = row.querySelector(".receipt-line-item").value;
+        const qty = parseFloat(row.querySelector(".receipt-line-qty").value);
+        const price = parseFloat(row.querySelector(".receipt-line-price").value);
+        if (itemId && qty > 0 && price >= 0) {
+            lines.push({ inventory_item_id: itemId, quantity: qty, purchase_price: price });
+        }
+    });
+
+    if (lines.length === 0) {
+        if (errorEl) {
+            errorEl.textContent = "Добави поне един ред с валидно количество и цена.";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.textContent = "⏳ Запазване...";
+    }
+
+    const { data: receipt, error: receiptErr } = await supabaseClient
+        .from("stock_receipts")
+        .insert({ supplier_id: supplierId, invoice_number: invoiceNumber })
+        .select()
+        .single();
+
+    if (receiptErr) {
+        if (errorEl) {
+            errorEl.textContent = receiptErr.message;
+            errorEl.classList.remove("hidden");
+        }
+        if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Запази зареждане"; }
+        return;
+    }
+
+    const rows = lines.map(l => ({ ...l, receipt_id: receipt.id }));
+    const { error: linesErr } = await supabaseClient.from("stock_receipt_items").insert(rows);
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Запази зареждане"; }
+
+    if (linesErr) {
+        if (errorEl) {
+            errorEl.textContent = linesErr.message;
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    // Успех — нулира формата и презарежда таблицата
+    document.getElementById("receipt-lines").innerHTML = "";
+    document.getElementById("receipt-invoice").value = "";
+    document.getElementById("receipt-form-wrapper").classList.add("hidden");
+    fetchAndRenderInventory();
+}
+
 // Инициализация при зареждане на DOM
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("login-btn");
@@ -453,6 +624,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 loadRestaurantName();
                 loadBackgroundImage();
                 loadSalesStats();
+                fetchAndRenderInventory();
+                loadSuppliersIntoForm();
             }
         });
     }
@@ -521,4 +694,26 @@ document.addEventListener("DOMContentLoaded", () => {
             fetchAndRender();
         });
     }
+
+    // Логика за склада
+    const toggleReceiptBtn = document.getElementById("toggle-receipt-form-btn");
+    const receiptFormWrapper = document.getElementById("receipt-form-wrapper");
+    if (toggleReceiptBtn && receiptFormWrapper) {
+        toggleReceiptBtn.addEventListener("click", () => {
+            receiptFormWrapper.classList.toggle("hidden");
+        });
+    }
+
+    const cancelReceiptBtn = document.getElementById("cancel-receipt-btn");
+    if (cancelReceiptBtn && receiptFormWrapper) {
+        cancelReceiptBtn.addEventListener("click", () => {
+            receiptFormWrapper.classList.add("hidden");
+        });
+    }
+
+    const addLineBtn = document.getElementById("add-receipt-line-btn");
+    if (addLineBtn) addLineBtn.addEventListener("click", addReceiptLine);
+
+    const saveReceiptBtn = document.getElementById("save-receipt-btn");
+    if (saveReceiptBtn) saveReceiptBtn.addEventListener("click", submitReceipt);
 });
