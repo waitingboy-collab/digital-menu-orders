@@ -452,6 +452,7 @@ async function fetchAndRenderInventory() {
     const { data, error } = await supabaseClient
         .from("inventory_items")
         .select("*")
+        .eq("is_active", true)
         .order("name");
 
     if (error) {
@@ -485,7 +486,7 @@ async function fetchAndRenderInventory() {
                     <td class="p-3 text-right">${price}</td>
                     <td class="p-3 text-right">
                         <button onclick='editInventoryItem(${JSON.stringify(item)})' class="text-blue-600 mr-3 text-xs font-bold cursor-pointer">Редактирай</button>
-                        <button onclick="deleteInventoryItem('${item.id}')" class="text-red-600 text-xs font-bold cursor-pointer">Изтрий</button>
+                        <button onclick="deleteInventoryItem('${item.id}')" class="text-red-600 text-xs font-bold cursor-pointer">Деактивирай</button>
                     </td>
                 </tr>`;
         }).join('');
@@ -689,13 +690,14 @@ window.editInventoryItem = (item) => {
     window.scrollTo({ top: document.getElementById("inventory-item-form-wrapper").offsetTop - 80, behavior: 'smooth' });
 };
 
-// Изтрива складов артикул (само записа за склада, не продукта от менюто)
+// Деактивира складов артикул (не изтрива физически — историята на
+// зарежданията остава, а артикулът просто изчезва от активния списък)
 window.deleteInventoryItem = async (id) => {
-    if (!confirm("Сигурен ли си, че искаш да изтриеш този складов артикул? Историята на движенията ще остане, но артикулът няма да е активен.")) return;
+    if (!confirm("Да деактивирам ли този складов артикул? Историята на зарежданията се запазва, но артикулът вече няма да е активен.")) return;
 
-    const { error } = await supabaseClient.from("inventory_items").delete().eq("id", id);
+    const { error } = await supabaseClient.from("inventory_items").update({ is_active: false }).eq("id", id);
     if (error) {
-        alert("Грешка при изтриване: " + error.message);
+        alert("Грешка при деактивиране: " + error.message);
         return;
     }
     fetchAndRenderInventory();
