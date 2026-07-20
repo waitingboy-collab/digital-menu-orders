@@ -601,6 +601,114 @@ async function submitReceipt() {
     fetchAndRenderInventory();
 }
 
+// Зарежда menu_items в select-а за връзка с нов складов артикул
+async function loadMenuItemsIntoInventoryForm() {
+    const select = document.getElementById("new-item-menu-link");
+    if (!select) return;
+
+    const { data, error } = await supabaseClient.from("menu_items").select("id, name").order("name");
+    if (error) {
+        console.error("Грешка при зареждане на менюто:", error.message);
+        return;
+    }
+
+    select.innerHTML = `<option value="">— без връзка с менюто —</option>` +
+        (data || []).map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+
+    // При избор на продукт от менюто, автоматично предлага същото име за складовия артикул
+    select.addEventListener("change", () => {
+        const nameInput = document.getElementById("new-item-name");
+        const selectedOption = select.options[select.selectedIndex];
+        if (nameInput && !nameInput.value && select.value) {
+            nameInput.value = selectedOption.textContent;
+        }
+    });
+}
+
+// Записва нов доставчик
+async function submitNewSupplier() {
+    const errorEl = document.getElementById("supplier-error");
+    const saveBtn = document.getElementById("save-supplier-btn");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const name = document.getElementById("new-supplier-name").value.trim();
+    const contact = document.getElementById("new-supplier-contact").value.trim() || null;
+
+    if (!name) {
+        if (errorEl) {
+            errorEl.textContent = "Въведи име на доставчика.";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "⏳ Запазване..."; }
+
+    const { error } = await supabaseClient.from("suppliers").insert({ name, contact });
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Запази доставчик"; }
+
+    if (error) {
+        if (errorEl) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    document.getElementById("new-supplier-name").value = "";
+    document.getElementById("new-supplier-contact").value = "";
+    document.getElementById("supplier-form-wrapper").classList.add("hidden");
+    loadSuppliersIntoForm();
+}
+
+// Записва нов складов артикул
+async function submitNewInventoryItem() {
+    const errorEl = document.getElementById("inventory-item-error");
+    const saveBtn = document.getElementById("save-inventory-item-btn");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const menuItemId = document.getElementById("new-item-menu-link").value || null;
+    const name = document.getElementById("new-item-name").value.trim();
+    const unit = document.getElementById("new-item-unit").value;
+    const minStockRaw = document.getElementById("new-item-min-stock").value;
+    const minStock = minStockRaw === "" ? 0 : parseFloat(minStockRaw);
+
+    if (!name) {
+        if (errorEl) {
+            errorEl.textContent = "Въведи име на складовия артикул.";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "⏳ Запазване..."; }
+
+    const { error } = await supabaseClient.from("inventory_items").insert({
+        menu_item_id: menuItemId,
+        name,
+        unit,
+        min_stock_alert: minStock,
+        current_stock: 0
+    });
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Запази артикул"; }
+
+    if (error) {
+        if (errorEl) {
+            errorEl.textContent = error.message;
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    document.getElementById("new-item-menu-link").value = "";
+    document.getElementById("new-item-name").value = "";
+    document.getElementById("new-item-min-stock").value = "";
+    document.getElementById("inventory-item-form-wrapper").classList.add("hidden");
+    fetchAndRenderInventory();
+}
+
 // Инициализация при зареждане на DOM
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("login-btn");
@@ -626,6 +734,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 loadSalesStats();
                 fetchAndRenderInventory();
                 loadSuppliersIntoForm();
+                loadMenuItemsIntoInventoryForm();
             }
         });
     }
@@ -716,4 +825,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const saveReceiptBtn = document.getElementById("save-receipt-btn");
     if (saveReceiptBtn) saveReceiptBtn.addEventListener("click", submitReceipt);
+
+    // Форма за нов доставчик
+    const toggleSupplierBtn = document.getElementById("toggle-supplier-form-btn");
+    const supplierFormWrapper = document.getElementById("supplier-form-wrapper");
+    if (toggleSupplierBtn && supplierFormWrapper) {
+        toggleSupplierBtn.addEventListener("click", () => {
+            supplierFormWrapper.classList.toggle("hidden");
+        });
+    }
+    const cancelSupplierBtn = document.getElementById("cancel-supplier-btn");
+    if (cancelSupplierBtn && supplierFormWrapper) {
+        cancelSupplierBtn.addEventListener("click", () => {
+            supplierFormWrapper.classList.add("hidden");
+        });
+    }
+    const saveSupplierBtn = document.getElementById("save-supplier-btn");
+    if (saveSupplierBtn) saveSupplierBtn.addEventListener("click", submitNewSupplier);
+
+    // Форма за нов складов артикул
+    const toggleInventoryItemBtn = document.getElementById("toggle-inventory-item-form-btn");
+    const inventoryItemFormWrapper = document.getElementById("inventory-item-form-wrapper");
+    if (toggleInventoryItemBtn && inventoryItemFormWrapper) {
+        toggleInventoryItemBtn.addEventListener("click", () => {
+            inventoryItemFormWrapper.classList.toggle("hidden");
+        });
+    }
+    const cancelInventoryItemBtn = document.getElementById("cancel-inventory-item-btn");
+    if (cancelInventoryItemBtn && inventoryItemFormWrapper) {
+        cancelInventoryItemBtn.addEventListener("click", () => {
+            inventoryItemFormWrapper.classList.add("hidden");
+        });
+    }
+    const saveInventoryItemBtn = document.getElementById("save-inventory-item-btn");
+    if (saveInventoryItemBtn) saveInventoryItemBtn.addEventListener("click", submitNewInventoryItem);
 });
