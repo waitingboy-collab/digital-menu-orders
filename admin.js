@@ -478,7 +478,15 @@ async function fetchAndRenderInventory() {
             return `
                 <tr>
                     <td class="p-3 font-bold">${item.name}</td>
-                    <td class="p-3 text-center">${item.current_stock} ${item.unit || 'бр'}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-1.5">
+                            <button onclick="adjustInventoryStock('${item.id}', ${item.current_stock}, -1)"
+                                class="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-xs cursor-pointer">−</button>
+                            <span class="font-bold text-sm min-w-[3.5rem] text-center">${item.current_stock} ${item.unit || 'бр'}</span>
+                            <button onclick="adjustInventoryStock('${item.id}', ${item.current_stock}, 1)"
+                                class="w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 font-bold text-xs cursor-pointer">+</button>
+                        </div>
+                    </td>
                     <td class="p-3 text-center">${servingsCell}</td>
                     <td class="p-3">
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${level.cls}">${level.label}</span>
@@ -673,12 +681,37 @@ async function submitNewSupplier() {
     loadSuppliersIntoForm();
 }
 
+// Бърза ръчна корекция на наличността директно от таблицата (+1 / -1)
+window.adjustInventoryStock = async (id, currentStock, delta) => {
+    const newStock = Math.max(0, Number(currentStock) + delta);
+
+    const { error: updateErr } = await supabaseClient
+        .from("inventory_items")
+        .update({ current_stock: newStock, updated_at: new Date().toISOString() })
+        .eq("id", id);
+
+    if (updateErr) {
+        alert("Грешка при промяна на наличността: " + updateErr.message);
+        return;
+    }
+
+    // Записва движението за одиторска следа
+    await supabaseClient.from("stock_movements").insert({
+        inventory_item_id: id,
+        change_amount: delta,
+        reason: "adjustment"
+    });
+
+    fetchAndRenderInventory();
+};
+
 // Отваря формата предварително попълнена за редакция на съществуващ артикул
 window.editInventoryItem = (item) => {
     document.getElementById("editing-inventory-item-id").value = item.id;
     document.getElementById("new-item-menu-link").value = item.menu_item_id || "";
     document.getElementById("new-item-name").value = item.name || "";
     document.getElementById("new-item-unit").value = item.unit || "бр";
+    document.getElementById("new-item-stock").value = item.current_stock != null ? item.current_stock : 0;
     document.getElementById("new-item-min-stock").value = item.min_stock_alert || "";
     document.getElementById("new-item-usage").value = item.usage_per_sale != null ? item.usage_per_sale : 1;
 
@@ -727,6 +760,7 @@ function resetInventoryItemForm() {
     document.getElementById("new-item-menu-link").value = "";
     document.getElementById("new-item-name").value = "";
     document.getElementById("new-item-unit").value = "бр";
+    document.getElementById("new-item-stock").value = "";
     document.getElementById("new-item-min-stock").value = "";
     document.getElementById("new-item-usage").value = "";
     document.getElementById("inventory-item-form-title").textContent = "Нов складов артикул";
@@ -746,6 +780,8 @@ async function submitNewInventoryItem() {
     const unit = document.getElementById("new-item-unit").value;
     const minStockRaw = document.getElementById("new-item-min-stock").value;
     const minStock = minStockRaw === "" ? 0 : parseFloat(minStockRaw);
+    const stockRaw = document.getElementById("new-item-stock").value;
+    const currentStock = stockRaw === "" ? 0 : parseFloat(stockRaw);
     const usageRaw = document.getElementById("new-item-usage").value;
     const usage = usageRaw === "" ? 1 : parseFloat(usageRaw);
 
@@ -764,14 +800,15 @@ async function submitNewInventoryItem() {
         name,
         unit,
         min_stock_alert: minStock,
-        usage_per_sale: usage
+        usage_per_sale: usage,
+        current_stock: currentStock
     };
 
     let error;
     if (editingId) {
         ({ error } = await supabaseClient.from("inventory_items").update(payload).eq("id", editingId));
     } else {
-        ({ error } = await supabaseClient.from("inventory_items").insert({ ...payload, current_stock: 0 }));
+        ({ error } = await supabaseClient.from("inventory_items").insert(payload));
     }
 
     if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = editingId ? "💾 Запази промените" : "💾 Запази артикул"; }
