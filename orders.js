@@ -140,15 +140,33 @@ function showOrderNotification(order) {
     }, 15000);
 }
 
-// Пуска звуковия сигнал
+// Пуска кратък генериран звуков сигнал (без нужда от .mp3 файл)
 function playNewOrderSound() {
-    const audio = document.getElementById("new-order-sound");
-    if (!audio) return;
-    audio.currentTime = 0;
-    audio.play().catch(() => {
-        // Браузърите блокират автоматично пускане на звук, докато потребителят
-        // не кликне някъде на страницата поне веднъж — нормално за първия път
-    });
+    try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContextClass();
+
+        // Два кратки "бийп" тона един след друг
+        [880, 1046.5].forEach((freq, i) => {
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            oscillator.type = "sine";
+            oscillator.frequency.value = freq;
+
+            const startTime = ctx.currentTime + i * 0.15;
+            gainNode.gain.setValueAtTime(0.3, startTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, startTime + 0.15);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            oscillator.start(startTime);
+            oscillator.stop(startTime + 0.15);
+        });
+    } catch (e) {
+        console.warn("Звукът не можа да се пусне:", e);
+    }
 }
 
 // Показва браузърно системно известие (работи дори при минимизиран/друг таб)
