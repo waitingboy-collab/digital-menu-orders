@@ -107,11 +107,71 @@ async function completeOrder(orderId) {
     renderOrders();
 }
 
+// ============================================================
+// НОТИФИКАЦИИ ЗА НОВИ ПОРЪЧКИ
+// ============================================================
+
+// Показва изскачаща карта за нова поръчка
+function showOrderNotification(order) {
+    const container = document.getElementById("order-notifications");
+    if (!container) return;
+
+    const card = document.createElement("div");
+    card.className = "order-notification-card bg-white border border-gray-200 rounded-2xl shadow-lg p-4 flex items-start gap-3";
+
+    const time = new Date(order.created_at || Date.now()).toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" });
+    const total = Number(order.total || 0).toFixed(2);
+
+    card.innerHTML = `
+        <div class="w-9 h-9 rounded-full bg-amber-600 flex items-center justify-center flex-shrink-0 text-white font-bold">🔔</div>
+        <div class="flex-1">
+            <p class="text-sm font-bold text-slate-800">Нова поръчка — маса ${order.table_number || '?'}</p>
+            <p class="text-xs text-gray-500 mt-0.5">${total} € · ${time}</p>
+        </div>
+        <button class="dismiss-notification-btn text-gray-300 hover:text-gray-600 font-bold cursor-pointer">✕</button>
+    `;
+
+    container.appendChild(card);
+    card.querySelector(".dismiss-notification-btn").addEventListener("click", () => card.remove());
+
+    // Автоматично изчезва след 15 секунди, ако не е затворена ръчно
+    setTimeout(() => {
+        if (card.parentElement) card.remove();
+    }, 15000);
+}
+
+// Пуска звуковия сигнал
+function playNewOrderSound() {
+    const audio = document.getElementById("new-order-sound");
+    if (!audio) return;
+    audio.currentTime = 0;
+    audio.play().catch(() => {
+        // Браузърите блокират автоматично пускане на звук, докато потребителят
+        // не кликне някъде на страницата поне веднъж — нормално за първия път
+    });
+}
+
+// Показва браузърно системно известие (работи дори при минимизиран/друг таб)
+function showBrowserNotification(order) {
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+
+    const total = Number(order.total || 0).toFixed(2);
+    new Notification(`Нова поръчка — маса ${order.table_number || '?'}`, {
+        body: `Сума: ${total} €`,
+    });
+}
+
 // Живо следене на нови поръчки и промени в статуса
+// (разширено с notification логика само за INSERT събития)
 function subscribeToOrders() {
     supabaseClient
         .channel("orders-live")
-        .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
+        .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+            if (payload.eventType === "INSERT") {
+                showOrderNotification(payload.new);
+                playNewOrderSound();
+                showBrowserNotification(payload.new);
+            }
             fetchOrders();
         })
         .subscribe();
@@ -122,6 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const loginForm = document.getElementById("login-card");
     const dashboard = document.getElementById("orders-dashboard");
     const logoutBtn = document.getElementById("logout-btn");
+    const enableNotificationsBtn = document.getElementById("enable-notifications-btn");
 
     if (loginBtn) {
         loginBtn.addEventListener("click", async () => {
@@ -142,7 +203,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetchOrders();
                 subscribeToOrders();
                 clockInterval = setInterval(refreshTimeLabels, 1000);
+
+                // Предлага разрешаване на системни известия, ако все още не са зададени
+                if (enableNotificationsBtn && typeof Notification !== "undefined" && Notification.permission === "default") {
+                    enableNotificationsBtn.classList.remove("hidden");
+                }
             }
+        });
+    }
+
+    if (enableNotificationsBtn) {
+        enableNotificationsBtn.addEventListener("click", () => {
+            Notification.requestPermission().then(() => {
+                enableNotificationsBtn.classList.add("hidden");
+            });
         });
     }
 
