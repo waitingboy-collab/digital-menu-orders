@@ -469,14 +469,24 @@ async function fetchAndRenderInventory() {
         tbody.innerHTML = cachedInventoryItems.map(item => {
             const level = stockLevelInfo(item);
             const price = item.last_purchase_price != null ? `${Number(item.last_purchase_price).toFixed(2)} €` : "—";
+            const usage = item.usage_per_sale || 1;
+            const servings = usage > 0 ? Math.floor(item.current_stock / usage) : null;
+            const servingsCell = (item.menu_item_id && usage !== 1)
+                ? `${servings} бр.`
+                : `<span class="text-gray-400">—</span>`;
             return `
                 <tr>
                     <td class="p-3 font-bold">${item.name}</td>
                     <td class="p-3 text-center">${item.current_stock} ${item.unit || 'бр'}</td>
+                    <td class="p-3 text-center">${servingsCell}</td>
                     <td class="p-3">
                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${level.cls}">${level.label}</span>
                     </td>
                     <td class="p-3 text-right">${price}</td>
+                    <td class="p-3 text-right">
+                        <button onclick='editInventoryItem(${JSON.stringify(item)})' class="text-blue-600 mr-3 text-xs font-bold cursor-pointer">Редактирай</button>
+                        <button onclick="deleteInventoryItem('${item.id}')" class="text-red-600 text-xs font-bold cursor-pointer">Изтрий</button>
+                    </td>
                 </tr>`;
         }).join('');
     }
@@ -662,17 +672,80 @@ async function submitNewSupplier() {
     loadSuppliersIntoForm();
 }
 
-// Записва нов складов артикул
+// Отваря формата предварително попълнена за редакция на съществуващ артикул
+window.editInventoryItem = (item) => {
+    document.getElementById("editing-inventory-item-id").value = item.id;
+    document.getElementById("new-item-menu-link").value = item.menu_item_id || "";
+    document.getElementById("new-item-name").value = item.name || "";
+    document.getElementById("new-item-unit").value = item.unit || "бр";
+    document.getElementById("new-item-min-stock").value = item.min_stock_alert || "";
+    document.getElementById("new-item-usage").value = item.usage_per_sale != null ? item.usage_per_sale : 1;
+
+    document.getElementById("inventory-item-form-title").textContent = "Редактиране на складов артикул";
+    document.getElementById("save-inventory-item-btn").textContent = "💾 Запази промените";
+
+    updateUsageHint();
+    document.getElementById("inventory-item-form-wrapper").classList.remove("hidden");
+    window.scrollTo({ top: document.getElementById("inventory-item-form-wrapper").offsetTop - 80, behavior: 'smooth' });
+};
+
+// Изтрива складов артикул (само записа за склада, не продукта от менюто)
+window.deleteInventoryItem = async (id) => {
+    if (!confirm("Сигурен ли си, че искаш да изтриеш този складов артикул? Историята на движенията ще остане, но артикулът няма да е активен.")) return;
+
+    const { error } = await supabaseClient.from("inventory_items").delete().eq("id", id);
+    if (error) {
+        alert("Грешка при изтриване: " + error.message);
+        return;
+    }
+    fetchAndRenderInventory();
+};
+
+// Показва изчислен брой порции при въвеждане на разход за 1 продажба
+function updateUsageHint() {
+    const usageInput = document.getElementById("new-item-usage");
+    const unitSelect = document.getElementById("new-item-unit");
+    const hintEl = document.getElementById("usage-calc-hint");
+    if (!usageInput || !hintEl) return;
+
+    const usage = parseFloat(usageInput.value);
+    const unit = unitSelect ? unitSelect.value : "бр";
+
+    if (usage > 0 && usage !== 1) {
+        const servingsPerUnit = Math.floor(1 / usage);
+        hintEl.textContent = `= ${servingsPerUnit} продажби от 1 ${unit}`;
+    } else {
+        hintEl.textContent = "Остави 1, ако продажбата = 1 цяла единица (напр. 1 бутилка бира)";
+    }
+}
+
+// Нулира формата обратно в режим "нов артикул"
+function resetInventoryItemForm() {
+    document.getElementById("editing-inventory-item-id").value = "";
+    document.getElementById("new-item-menu-link").value = "";
+    document.getElementById("new-item-name").value = "";
+    document.getElementById("new-item-unit").value = "бр";
+    document.getElementById("new-item-min-stock").value = "";
+    document.getElementById("new-item-usage").value = "";
+    document.getElementById("inventory-item-form-title").textContent = "Нов складов артикул";
+    document.getElementById("save-inventory-item-btn").textContent = "💾 Запази артикул";
+    updateUsageHint();
+}
+
+// Записва нов складов артикул ИЛИ обновява съществуващ (в зависимост от editing-inventory-item-id)
 async function submitNewInventoryItem() {
     const errorEl = document.getElementById("inventory-item-error");
     const saveBtn = document.getElementById("save-inventory-item-btn");
     if (errorEl) errorEl.classList.add("hidden");
 
+    const editingId = document.getElementById("editing-inventory-item-id").value || null;
     const menuItemId = document.getElementById("new-item-menu-link").value || null;
     const name = document.getElementById("new-item-name").value.trim();
     const unit = document.getElementById("new-item-unit").value;
     const minStockRaw = document.getElementById("new-item-min-stock").value;
     const minStock = minStockRaw === "" ? 0 : parseFloat(minStockRaw);
+    const usageRaw = document.getElementById("new-item-usage").value;
+    const usage = usageRaw === "" ? 1 : parseFloat(usageRaw);
 
     if (!name) {
         if (errorEl) {
@@ -684,15 +757,22 @@ async function submitNewInventoryItem() {
 
     if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "⏳ Запазване..."; }
 
-    const { error } = await supabaseClient.from("inventory_items").insert({
+    const payload = {
         menu_item_id: menuItemId,
         name,
         unit,
         min_stock_alert: minStock,
-        current_stock: 0
-    });
+        usage_per_sale: usage
+    };
 
-    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "💾 Запази артикул"; }
+    let error;
+    if (editingId) {
+        ({ error } = await supabaseClient.from("inventory_items").update(payload).eq("id", editingId));
+    } else {
+        ({ error } = await supabaseClient.from("inventory_items").insert({ ...payload, current_stock: 0 }));
+    }
+
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = editingId ? "💾 Запази промените" : "💾 Запази артикул"; }
 
     if (error) {
         if (errorEl) {
@@ -702,9 +782,7 @@ async function submitNewInventoryItem() {
         return;
     }
 
-    document.getElementById("new-item-menu-link").value = "";
-    document.getElementById("new-item-name").value = "";
-    document.getElementById("new-item-min-stock").value = "";
+    resetInventoryItemForm();
     document.getElementById("inventory-item-form-wrapper").classList.add("hidden");
     fetchAndRenderInventory();
 }
@@ -848,15 +926,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const inventoryItemFormWrapper = document.getElementById("inventory-item-form-wrapper");
     if (toggleInventoryItemBtn && inventoryItemFormWrapper) {
         toggleInventoryItemBtn.addEventListener("click", () => {
+            const willShow = inventoryItemFormWrapper.classList.contains("hidden");
+            if (willShow) resetInventoryItemForm();
             inventoryItemFormWrapper.classList.toggle("hidden");
         });
     }
     const cancelInventoryItemBtn = document.getElementById("cancel-inventory-item-btn");
     if (cancelInventoryItemBtn && inventoryItemFormWrapper) {
         cancelInventoryItemBtn.addEventListener("click", () => {
+            resetInventoryItemForm();
             inventoryItemFormWrapper.classList.add("hidden");
         });
     }
     const saveInventoryItemBtn = document.getElementById("save-inventory-item-btn");
     if (saveInventoryItemBtn) saveInventoryItemBtn.addEventListener("click", submitNewInventoryItem);
+
+    const usageInput = document.getElementById("new-item-usage");
+    if (usageInput) usageInput.addEventListener("input", updateUsageHint);
+    const unitSelectForHint = document.getElementById("new-item-unit");
+    if (unitSelectForHint) unitSelectForHint.addEventListener("change", updateUsageHint);
 });
