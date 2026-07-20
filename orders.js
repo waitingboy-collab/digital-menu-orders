@@ -141,10 +141,24 @@ function showOrderNotification(order) {
 }
 
 // Пуска кратък генериран звуков сигнал (без нужда от .mp3 файл)
+let sharedAudioCtx = null;
+
+function getAudioContext() {
+    if (!sharedAudioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        sharedAudioCtx = new AudioContextClass();
+    }
+    return sharedAudioCtx;
+}
+
 function playNewOrderSound() {
     try {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        const ctx = new AudioContextClass();
+        const ctx = getAudioContext();
+
+        // Ако контекстът е "заспал" (браузърна политика за autoplay), събужда го
+        if (ctx.state === "suspended") {
+            ctx.resume();
+        }
 
         // Два кратки "бийп" тона един след друг
         [880, 1046.5].forEach((freq, i) => {
@@ -204,6 +218,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (loginBtn) {
         loginBtn.addEventListener("click", async () => {
+            // Отключва звука тук — браузърът изисква директно потребителско действие
+            getAudioContext();
+
             const email = document.getElementById("login-email").value;
             const password = document.getElementById("login-password").value;
             const errorEl = document.getElementById("login-error");
