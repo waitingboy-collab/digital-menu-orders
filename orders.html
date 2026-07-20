@@ -6,9 +6,17 @@
     <title>Поръчки - Дигитално Меню</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .order-notification-card {
+            animation: slideIn 0.3s ease-out;
+        }
+    </style>
 </head>
 <body class="bg-gray-100 text-gray-950 font-sans min-h-screen flex flex-col">
-
     <!-- ХЕДЪР -->
     <header class="bg-slate-800 text-white py-4 px-6 shadow-md flex justify-between items-center">
         <h1 class="text-lg font-black tracking-wide">🧾 Активни поръчки</h1>
@@ -22,8 +30,18 @@
         </div>
     </header>
 
-    <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-center">
+    <!-- КОНТЕЙНЕР ЗА ИЗСКАЧАЩИ НОТИФИКАЦИИ ЗА НОВИ ПОРЪЧКИ -->
+    <div id="order-notifications" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80"></div>
 
+    <!-- Звуков файл — качи кратък .mp3 (1-2 сек) в папката "sounds/" -->
+    <audio id="new-order-sound" src="sounds/new-order.mp3" preload="auto"></audio>
+
+    <!-- Бутон за разрешаване на системни известия (показва се само ако не са разрешени) -->
+    <button id="enable-notifications-btn" class="hidden fixed bottom-4 right-4 z-50 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-md cursor-pointer">
+        🔔 Разреши известия
+    </button>
+
+    <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-center">
         <!-- ФОРМА ЗА ВХОД -->
         <div id="login-card" class="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full mx-auto space-y-4">
             <div class="text-center">
@@ -45,7 +63,6 @@
                 <p id="login-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
             </div>
         </div>
-
         <!-- ТАБЛО С ПОРЪЧКИ -->
         <div id="orders-dashboard" class="hidden w-full space-y-4">
             <div class="flex items-center justify-between">
@@ -54,17 +71,14 @@
                     <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> На живо
                 </span>
             </div>
-
             <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <!-- Динамични карти с поръчки -->
             </div>
-
             <div id="empty-orders" class="hidden text-center py-16 text-gray-400 text-sm">
                 Няма активни поръчки в момента. 🎉
             </div>
         </div>
     </main>
-
     <script src="orders.js"></script>
 </body>
 </html>
