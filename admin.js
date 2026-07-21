@@ -826,6 +826,324 @@ async function submitNewInventoryItem() {
     fetchAndRenderInventory();
 }
 
+// ============================================================
+// СМЕНИ — персонал, работен график, каса
+// ============================================================
+
+let currentUserEmail = null;
+let cachedStaffMembers = [];
+
+function switchShiftsTab(tabName) {
+    ["staff", "schedule", "cash"].forEach(name => {
+        const panel = document.getElementById(`shifts-panel-${name}`);
+        const btn = document.querySelector(`[data-shifts-tab="${name}"]`);
+        if (panel) panel.classList.toggle("hidden", name !== tabName);
+        if (btn) {
+            btn.classList.toggle("bg-slate-100", name === tabName);
+            btn.classList.toggle("text-slate-700", name === tabName);
+            btn.classList.toggle("text-gray-500", name !== tabName);
+        }
+    });
+    if (tabName === "cash") renderCashShiftStatus();
+}
+
+// ---------- Персонал ----------
+
+async function fetchAndRenderStaff() {
+    const { data, error } = await supabaseClient
+        .from("staff_members")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+
+    if (error) {
+        console.error("Грешка при зареждане на персонала:", error.message);
+        return;
+    }
+
+    cachedStaffMembers = data || [];
+
+    const tbody = document.getElementById("staff-table");
+    if (tbody) {
+        tbody.innerHTML = cachedStaffMembers.map(s => `
+            <tr>
+                <td class="p-2 font-bold">${s.name}</td>
+                <td class="p-2 text-gray-500">${s.role || '—'}</td>
+                <td class="p-2 text-right">
+                    <button onclick="deactivateStaff('${s.id}')" class="text-red-600 text-xs font-bold cursor-pointer">Деактивирай</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+
+    const shiftSelect = document.getElementById("new-shift-staff");
+    if (shiftSelect) {
+        const current = shiftSelect.value;
+        shiftSelect.innerHTML = `<option value="">— избери служител —</option>` +
+            cachedStaffMembers.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+        if (current) shiftSelect.value = current;
+    }
+}
+
+async function addStaffMember() {
+    const errorEl = document.getElementById("staff-error");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const name = document.getElementById("new-staff-name").value.trim();
+    const role = document.getElementById("new-staff-role").value.trim() || null;
+
+    if (!name) {
+        if (errorEl) { errorEl.textContent = "Въведи име на служителя."; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    const { error } = await supabaseClient.from("staff_members").insert({ name, role });
+    if (error) {
+        if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    document.getElementById("new-staff-name").value = "";
+    document.getElementById("new-staff-role").value = "";
+    fetchAndRenderStaff();
+}
+
+window.deactivateStaff = async (id) => {
+    if (!confirm("Да деактивирам ли този служител? Историята на смените му се запазва.")) return;
+    const { error } = await supabaseClient.from("staff_members").update({ is_active: false }).eq("id", id);
+    if (error) { alert("Грешка: " + error.message); return; }
+    fetchAndRenderStaff();
+};
+
+// ---------- Работен график ----------
+
+async function fetchAndRenderSchedule() {
+    const { data, error } = await supabaseClient
+        .from("staff_shifts")
+        .select("*, staff_members(name)")
+        .order("shift_date", { ascending: true })
+        .limit(50);
+
+    if (error) {
+        console.error("Грешка при зареждане на графика:", error.message);
+        return;
+    }
+
+    const tbody = document.getElementById("schedule-table");
+    if (!tbody) return;
+
+    tbody.innerHTML = (data || []).map(shift => `
+        <tr>
+            <td class="p-2 font-bold">${shift.staff_members ? shift.staff_members.name : '—'}</td>
+            <td class="p-2">${shift.shift_date}</td>
+            <td class="p-2 text-gray-500">${shift.start_time.slice(0,5)}–${shift.end_time.slice(0,5)}</td>
+            <td class="p-2 text-right">
+                <button onclick="deleteShift('${shift.id}')" class="text-red-600 text-xs font-bold cursor-pointer">Изтрий</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function addShift() {
+    const errorEl = document.getElementById("shift-error");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const staffId = document.getElementById("new-shift-staff").value;
+    const date = document.getElementById("new-shift-date").value;
+    const start = document.getElementById("new-shift-start").value;
+    const end = document.getElementById("new-shift-end").value;
+
+    if (!staffId || !date || !start || !end) {
+        if (errorEl) { errorEl.textContent = "Попълни служител, дата и часове."; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    const { error } = await supabaseClient.from("staff_shifts").insert({
+        staff_id: staffId, shift_date: date, start_time: start, end_time: end
+    });
+
+    if (error) {
+        if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    document.getElementById("new-shift-date").value = "";
+    document.getElementById("new-shift-start").value = "";
+    document.getElementById("new-shift-end").value = "";
+    fetchAndRenderSchedule();
+}
+
+window.deleteShift = async (id) => {
+    if (!confirm("Да изтрия ли тази смяна от графика?")) return;
+    const { error } = await supabaseClient.from("staff_shifts").delete().eq("id", id);
+    if (error) { alert("Грешка: " + error.message); return; }
+    fetchAndRenderSchedule();
+};
+
+// ---------- Каса ----------
+
+async function getOpenCashShift() {
+    const { data, error } = await supabaseClient
+        .from("cash_shifts")
+        .select("*")
+        .eq("status", "open")
+        .maybeSingle();
+
+    if (error) {
+        console.error("Грешка при проверка на касата:", error.message);
+        return null;
+    }
+    return data;
+}
+
+// Изчислява сумата от завършени поръчки от даден момент насам (приема плащане в брой за всички)
+async function calculateExpectedCash(openedAt, startingCash) {
+    const { data, error } = await supabaseClient
+        .from("orders")
+        .select("total")
+        .eq("status", "done")
+        .gte("created_at", openedAt);
+
+    if (error) {
+        console.error("Грешка при изчисление на очакваната сума:", error.message);
+        return startingCash;
+    }
+
+    const salesSum = (data || []).reduce((sum, o) => sum + Number(o.total || 0), 0);
+    return startingCash + salesSum;
+}
+
+async function renderCashShiftStatus() {
+    const container = document.getElementById("cash-shift-status");
+    if (!container) return;
+
+    const openShift = await getOpenCashShift();
+
+    if (!openShift) {
+        container.innerHTML = `
+            <p class="text-sm text-gray-500 mb-3">В момента няма отворена смяна на касата.</p>
+            <div class="flex items-center gap-2">
+                <input type="number" step="0.01" min="0" id="opening-cash-input" placeholder="Начална сума в брой €" class="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
+                <button id="open-cash-shift-btn" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap">▶️ Отвори смяна</button>
+            </div>
+        `;
+        const openBtn = document.getElementById("open-cash-shift-btn");
+        if (openBtn) openBtn.addEventListener("click", openCashShift);
+    } else {
+        const openedTime = new Date(openShift.opened_at).toLocaleString("bg-BG");
+        const expected = await calculateExpectedCash(openShift.opened_at, Number(openShift.starting_cash));
+
+        container.innerHTML = `
+            <p class="text-sm font-bold text-green-700 mb-1">🟢 Смяна отворена</p>
+            <p class="text-xs text-gray-500 mb-3">от ${openedTime}${openShift.opened_by ? ' · ' + openShift.opened_by : ''}</p>
+            <div class="grid grid-cols-2 gap-2 mb-3 text-sm">
+                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                    <p class="text-[10px] text-gray-400 uppercase font-bold">Начална сума</p>
+                    <p class="font-bold">${Number(openShift.starting_cash).toFixed(2)} €</p>
+                </div>
+                <div class="bg-white rounded-lg p-2 border border-gray-100">
+                    <p class="text-[10px] text-gray-400 uppercase font-bold">Очаквана в момента</p>
+                    <p class="font-bold text-amber-600">${expected.toFixed(2)} €</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <input type="number" step="0.01" min="0" id="closing-cash-input" placeholder="Преброена сума в брой €" class="flex-1 bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
+                <button id="close-cash-shift-btn" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer whitespace-nowrap">⏹️ Затвори смяна</button>
+            </div>
+        `;
+        const closeBtn = document.getElementById("close-cash-shift-btn");
+        if (closeBtn) closeBtn.addEventListener("click", () => closeCashShift(openShift, expected));
+    }
+}
+
+async function openCashShift() {
+    const errorEl = document.getElementById("cash-error");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const startingRaw = document.getElementById("opening-cash-input").value;
+    const startingCash = startingRaw === "" ? 0 : parseFloat(startingRaw);
+
+    const { error } = await supabaseClient.from("cash_shifts").insert({
+        starting_cash: startingCash,
+        opened_by: currentUserEmail,
+        status: "open"
+    });
+
+    if (error) {
+        if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    renderCashShiftStatus();
+}
+
+async function closeCashShift(openShift, expected) {
+    const errorEl = document.getElementById("cash-error");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const closingRaw = document.getElementById("closing-cash-input").value;
+    if (closingRaw === "") {
+        if (errorEl) { errorEl.textContent = "Въведи преброената сума в брой."; errorEl.classList.remove("hidden"); }
+        return;
+    }
+    const closingCash = parseFloat(closingRaw);
+    const difference = closingCash - expected;
+
+    const { error } = await supabaseClient
+        .from("cash_shifts")
+        .update({
+            closed_at: new Date().toISOString(),
+            closing_cash: closingCash,
+            expected_cash: expected,
+            difference: difference,
+            status: "closed"
+        })
+        .eq("id", openShift.id);
+
+    if (error) {
+        if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    const diffLabel = difference === 0 ? "точно" : (difference > 0 ? `излишък ${difference.toFixed(2)} €` : `недостиг ${Math.abs(difference).toFixed(2)} €`);
+    alert(`Смяната е затворена. Резултат: ${diffLabel}`);
+
+    renderCashShiftStatus();
+    fetchAndRenderCashHistory();
+}
+
+async function fetchAndRenderCashHistory() {
+    const { data, error } = await supabaseClient
+        .from("cash_shifts")
+        .select("*")
+        .eq("status", "closed")
+        .order("closed_at", { ascending: false })
+        .limit(20);
+
+    if (error) {
+        console.error("Грешка при зареждане на историята на касата:", error.message);
+        return;
+    }
+
+    const tbody = document.getElementById("cash-history-table");
+    if (!tbody) return;
+
+    tbody.innerHTML = (data || []).map(s => {
+        const diff = Number(s.difference || 0);
+        const diffClass = diff === 0 ? "text-gray-500" : (diff > 0 ? "text-green-600" : "text-red-600");
+        return `
+            <tr>
+                <td class="p-2">${new Date(s.opened_at).toLocaleString("bg-BG")}</td>
+                <td class="p-2">${s.closed_at ? new Date(s.closed_at).toLocaleString("bg-BG") : '—'}</td>
+                <td class="p-2 text-right">${Number(s.starting_cash).toFixed(2)} €</td>
+                <td class="p-2 text-right">${Number(s.expected_cash || 0).toFixed(2)} €</td>
+                <td class="p-2 text-right">${Number(s.closing_cash || 0).toFixed(2)} €</td>
+                <td class="p-2 text-right font-bold ${diffClass}">${diff.toFixed(2)} €</td>
+            </tr>
+        `;
+    }).join('');
+}
+
 // Инициализация при зареждане на DOM
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("login-btn");
@@ -843,6 +1161,7 @@ document.addEventListener("DOMContentLoaded", () => {
             if (error) {
                 alert("Грешка при вход: " + error.message);
             } else {
+                currentUserEmail = email;
                 loginForm.classList.add("hidden");
                 adminDashboard.classList.remove("hidden");
                 fetchAndRender();
@@ -852,6 +1171,10 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetchAndRenderInventory();
                 loadSuppliersIntoForm();
                 loadMenuItemsIntoInventoryForm();
+                fetchAndRenderStaff();
+                fetchAndRenderSchedule();
+                fetchAndRenderCashHistory();
+                renderCashShiftStatus();
             }
         });
     }
@@ -984,4 +1307,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (usageInput) usageInput.addEventListener("input", updateUsageHint);
     const unitSelectForHint = document.getElementById("new-item-unit");
     if (unitSelectForHint) unitSelectForHint.addEventListener("change", updateUsageHint);
+
+    // Смени — табове
+    document.querySelectorAll(".shifts-tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => switchShiftsTab(btn.getAttribute("data-shifts-tab")));
+    });
+
+    // Смени — персонал
+    const addStaffBtn = document.getElementById("add-staff-btn");
+    if (addStaffBtn) addStaffBtn.addEventListener("click", addStaffMember);
+
+    // Смени — график
+    const addShiftBtn = document.getElementById("add-shift-btn");
+    if (addShiftBtn) addShiftBtn.addEventListener("click", addShift);
 });
