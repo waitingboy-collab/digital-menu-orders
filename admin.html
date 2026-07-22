@@ -334,6 +334,59 @@
             <!-- ============================================================ -->
 
             <!-- ============================================================ -->
+            <!-- ЕЗИЦИ / ПРЕВОД (нова секция) -->
+            <!-- ============================================================ -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-gray-100">
+                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">🌍 Езици на менюто</h3>
+                </div>
+                <div class="p-4 space-y-4">
+                    <p class="text-xs text-gray-500">Избери езици, на които клиентите ще виждат менюто. Преводът е автоматичен (DeepL) и се пази — не се превежда наново при всяко зареждане.</p>
+                    <div id="language-checkboxes" class="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        <!-- Динамично попълнено от JS -->
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="save-languages-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">💾 Запази езици</button>
+                        <button id="translate-menu-btn" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">🌍 Преведи менюто</button>
+                    </div>
+                    <p id="translate-status" class="text-xs text-gray-500 hidden"></p>
+                    <p id="translate-error" class="text-xs text-red-600 font-semibold hidden"></p>
+                </div>
+            </div>
+            <!-- ============================================================ -->
+            <!-- КРАЙ НА ЕЗИЦИ СЕКЦИЯТА -->
+            <!-- ============================================================ -->
+
+            <!-- ============================================================ -->
+            <!-- РЕЗЕРВАЦИИ (нова секция) -->
+            <!-- ============================================================ -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📅 Резервации</h3>
+                    <span id="reservations-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 чакащи</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
+                            <tr>
+                                <th class="p-3">Клиент</th>
+                                <th class="p-3">Дата/час</th>
+                                <th class="p-3 text-center">Хора</th>
+                                <th class="p-3">Бележка</th>
+                                <th class="p-3 text-center">Статус</th>
+                                <th class="p-3 text-right">Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="reservations-table" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+                <p id="reservations-empty" class="hidden text-center text-gray-400 text-sm py-6">Няма резервации.</p>
+            </div>
+            <!-- ============================================================ -->
+            <!-- КРАЙ НА РЕЗЕРВАЦИИ СЕКЦИЯТА -->
+            <!-- ============================================================ -->
+
+            <!-- ============================================================ -->
             <!-- СМЕНИ (нова секция) -->
             <!-- ============================================================ -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
