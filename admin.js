@@ -827,6 +827,200 @@ async function submitNewInventoryItem() {
 }
 
 // ============================================================
+// ЕЗИЦИ / ПРЕВОД
+// ============================================================
+
+const AVAILABLE_LANGUAGES = [
+    { code: "en", label: "English" },
+    { code: "de", label: "Deutsch" },
+    { code: "ru", label: "Русский" },
+    { code: "el", label: "Ελληνικά" },
+    { code: "ro", label: "Română" },
+    { code: "tr", label: "Türkçe" },
+    { code: "fr", label: "Français" },
+    { code: "it", label: "Italiano" },
+];
+
+let enabledLanguages = [];
+
+async function loadLanguageSettings() {
+    const { data } = await supabaseClient
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "enabled_languages")
+        .maybeSingle();
+
+    enabledLanguages = data && data.value ? data.value.split(",").filter(Boolean) : [];
+
+    const container = document.getElementById("language-checkboxes");
+    if (!container) return;
+
+    container.innerHTML = AVAILABLE_LANGUAGES.map(lang => `
+        <label class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm cursor-pointer">
+            <input type="checkbox" class="language-checkbox" value="${lang.code}" ${enabledLanguages.includes(lang.code) ? "checked" : ""}>
+            ${lang.label}
+        </label>
+    `).join('');
+}
+
+async function saveLanguageSettings() {
+    const checked = Array.from(document.querySelectorAll(".language-checkbox:checked")).map(cb => cb.value);
+    enabledLanguages = checked;
+
+    const { error } = await supabaseClient
+        .from("restaurant_settings")
+        .upsert({ key: "enabled_languages", value: checked.join(",") }, { onConflict: "key" });
+
+    if (error) {
+        alert("Грешка при запазване: " + error.message);
+        return;
+    }
+    alert("Езиците са запазени!");
+}
+
+// Вика собствената /api/translate serverless функция (DeepL зад нея, ключът е скрит там)
+async function translateTexts(texts, targetLang) {
+    const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts, targetLang }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Грешка при превод");
+    return data.translations;
+}
+
+// Превежда цялото меню на всички избрани езици и кешира резултата в menu_items.translations
+async function translateMenu() {
+    const statusEl = document.getElementById("translate-status");
+    const errorEl = document.getElementById("translate-error");
+    const btn = document.getElementById("translate-menu-btn");
+
+    if (errorEl) errorEl.classList.add("hidden");
+
+    if (enabledLanguages.length === 0) {
+        if (errorEl) { errorEl.textContent = "Избери поне един език и запази, преди да превеждаш."; errorEl.classList.remove("hidden"); }
+        return;
+    }
+
+    const { data: items, error: fetchErr } = await supabaseClient.from("menu_items").select("*");
+    if (fetchErr) {
+        if (errorEl) { errorEl.textContent = fetchErr.message; errorEl.classList.remove("hidden"); }
+        return;
+    }
+    if (!items || items.length === 0) return;
+
+    btn.disabled = true;
+    if (statusEl) statusEl.classList.remove("hidden");
+
+    for (const lang of enabledLanguages) {
+        if (statusEl) statusEl.textContent = `Превеждам на ${lang.toUpperCase()}...`;
+
+        // Събира име+описание на всички артикули в един заявка (по-ефективно от превод на всеки поотделно)
+        const names = items.map(it => it.name || "");
+        const descriptions = items.map(it => it.description || "");
+
+        try {
+            const translatedNames = await translateTexts(names, lang);
+            const translatedDescriptions = await translateTexts(descriptions, lang);
+
+            // Записва резултата за всеки артикул поотделно (jsonb колона, не може bulk update лесно)
+            for (let i = 0; i < items.length; i++) {
+                const currentTranslations = items[i].translations || {};
+                currentTranslations[lang] = {
+                    name: translatedNames[i],
+                    description: translatedDescriptions[i],
+                };
+                await supabaseClient
+                    .from("menu_items")
+                    .update({ translations: currentTranslations })
+                    .eq("id", items[i].id);
+                items[i].translations = currentTranslations; // за следващия език в цикъла
+            }
+        } catch (e) {
+            if (errorEl) { errorEl.textContent = `Грешка при ${lang}: ${e.message}`; errorEl.classList.remove("hidden"); }
+            btn.disabled = false;
+            if (statusEl) statusEl.classList.add("hidden");
+            return;
+        }
+    }
+
+    btn.disabled = false;
+    if (statusEl) { statusEl.textContent = "Готово! Менюто е преведено на всички избрани езици."; }
+    setTimeout(() => { if (statusEl) statusEl.classList.add("hidden"); }, 4000);
+}
+
+// ============================================================
+// РЕЗЕРВАЦИИ
+// ============================================================
+
+async function fetchAndRenderReservations() {
+    const { data, error } = await supabaseClient
+        .from("reservations")
+        .select("*")
+        .neq("status", "cancelled")
+        .order("reservation_date", { ascending: true })
+        .order("reservation_time", { ascending: true });
+
+    if (error) {
+        console.error("Грешка при зареждане на резервациите:", error.message);
+        return;
+    }
+
+    const reservations = data || [];
+    const tbody = document.getElementById("reservations-table");
+    const emptyEl = document.getElementById("reservations-empty");
+    const countEl = document.getElementById("reservations-count");
+
+    const pendingCount = reservations.filter(r => r.status === "pending").length;
+    if (countEl) countEl.textContent = `${pendingCount} чакащи`;
+
+    if (reservations.length === 0) {
+        if (tbody) tbody.innerHTML = "";
+        if (emptyEl) emptyEl.classList.remove("hidden");
+        return;
+    }
+    if (emptyEl) emptyEl.classList.add("hidden");
+
+    const statusStyles = {
+        pending: "bg-amber-100 text-amber-700",
+        confirmed: "bg-green-100 text-green-700",
+    };
+    const statusLabels = { pending: "Чакаща", confirmed: "Потвърдена" };
+
+    if (tbody) {
+        tbody.innerHTML = reservations.map(r => `
+            <tr>
+                <td class="p-3 font-bold">${r.customer_name}<br><span class="text-xs text-gray-400 font-normal">${r.phone}</span></td>
+                <td class="p-3">${r.reservation_date} · ${r.reservation_time.slice(0,5)}</td>
+                <td class="p-3 text-center">${r.party_size}</td>
+                <td class="p-3 text-gray-500">${r.notes || '—'}</td>
+                <td class="p-3 text-center">
+                    <span class="px-2 py-0.5 rounded-full text-xs font-semibold ${statusStyles[r.status] || ''}">${statusLabels[r.status] || r.status}</span>
+                </td>
+                <td class="p-3 text-right whitespace-nowrap">
+                    ${r.status === "pending" ? `<button onclick="confirmReservation('${r.id}')" class="text-green-600 text-xs font-bold cursor-pointer mr-3">Потвърди</button>` : ''}
+                    <button onclick="cancelReservation('${r.id}')" class="text-red-600 text-xs font-bold cursor-pointer">Откажи</button>
+                </td>
+            </tr>
+        `).join('');
+    }
+}
+
+window.confirmReservation = async (id) => {
+    const { error } = await supabaseClient.from("reservations").update({ status: "confirmed" }).eq("id", id);
+    if (error) { alert("Грешка: " + error.message); return; }
+    fetchAndRenderReservations();
+};
+
+window.cancelReservation = async (id) => {
+    if (!confirm("Да отменя ли тази резервация?")) return;
+    const { error } = await supabaseClient.from("reservations").update({ status: "cancelled" }).eq("id", id);
+    if (error) { alert("Грешка: " + error.message); return; }
+    fetchAndRenderReservations();
+};
+
+// ============================================================
 // СМЕНИ — персонал, работен график, каса
 // ============================================================
 
@@ -1175,6 +1369,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetchAndRenderSchedule();
                 fetchAndRenderCashHistory();
                 renderCashShiftStatus();
+                loadLanguageSettings();
+                fetchAndRenderReservations();
             }
         });
     }
@@ -1320,4 +1516,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Смени — график
     const addShiftBtn = document.getElementById("add-shift-btn");
     if (addShiftBtn) addShiftBtn.addEventListener("click", addShift);
+
+    // Езици / превод
+    const saveLanguagesBtn = document.getElementById("save-languages-btn");
+    if (saveLanguagesBtn) saveLanguagesBtn.addEventListener("click", saveLanguageSettings);
+    const translateMenuBtn = document.getElementById("translate-menu-btn");
+    if (translateMenuBtn) translateMenuBtn.addEventListener("click", translateMenu);
 });
