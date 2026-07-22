@@ -913,6 +913,20 @@ async function translateMenu() {
     btn.disabled = true;
     if (statusEl) statusEl.classList.remove("hidden");
 
+    // Уникалните категории (превеждат се веднъж на категория, не по артикул)
+    const uniqueCategories = [...new Set(items.map(it => (it.category || "").trim()).filter(Boolean))];
+
+    const { data: catSettingData } = await supabaseClient
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "category_translations")
+        .maybeSingle();
+
+    let categoryTranslations = {};
+    if (catSettingData && catSettingData.value) {
+        try { categoryTranslations = JSON.parse(catSettingData.value); } catch (e) { categoryTranslations = {}; }
+    }
+
     for (const lang of enabledLanguages) {
         if (statusEl) statusEl.textContent = `Превеждам на ${lang.toUpperCase()}...`;
 
@@ -937,6 +951,15 @@ async function translateMenu() {
                     .eq("id", items[i].id);
                 items[i].translations = currentTranslations; // за следващия език в цикъла
             }
+
+            // Превежда категориите за този език (веднъж на категория)
+            if (uniqueCategories.length > 0) {
+                const translatedCategories = await translateTexts(uniqueCategories, lang);
+                uniqueCategories.forEach((cat, idx) => {
+                    if (!categoryTranslations[cat]) categoryTranslations[cat] = {};
+                    categoryTranslations[cat][lang] = translatedCategories[idx];
+                });
+            }
         } catch (e) {
             if (errorEl) { errorEl.textContent = `Грешка при ${lang}: ${e.message}`; errorEl.classList.remove("hidden"); }
             btn.disabled = false;
@@ -944,6 +967,11 @@ async function translateMenu() {
             return;
         }
     }
+
+    // Записва преводите на категориите като настройка
+    await supabaseClient
+        .from("restaurant_settings")
+        .upsert({ key: "category_translations", value: JSON.stringify(categoryTranslations) }, { onConflict: "key" });
 
     btn.disabled = false;
     if (statusEl) { statusEl.textContent = "Готово! Менюто е преведено на всички избрани езици."; }
