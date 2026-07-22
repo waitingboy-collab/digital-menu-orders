@@ -9,6 +9,7 @@ let searchQuery = "";
 let currentLanguage = "bg";
 let cachedItems = [];
 let cachedRestaurantName = "";
+let categoryTranslations = {};
 
 // Връща преведения текст, ако е избран чужд език и преводът съществува,
 // иначе пада обратно към българския оригинал
@@ -17,6 +18,14 @@ function getItemText(item, field) {
         return item.translations[currentLanguage][field];
     }
     return item[field] || "";
+}
+
+// Връща преведеното име на категория, ако е избран чужд език и преводът съществува
+function getCategoryLabel(cat) {
+    if (currentLanguage !== "bg" && categoryTranslations[cat] && categoryTranslations[cat][currentLanguage]) {
+        return categoryTranslations[cat][currentLanguage];
+    }
+    return cat;
 }
 
 function getCategories() {
@@ -46,11 +55,13 @@ function renderCategoryButtons() {
     const activeClasses = "bg-amber-600 text-white border-amber-600 shadow-sm";
     const inactiveClasses = "bg-white text-stone-600 border-stone-200 hover:border-amber-400";
 
-    const allBtn = `<button type="button" data-category="all" class="${baseClasses} ${currentCategory === "all" ? activeClasses : inactiveClasses}">Всички</button>`;
+    const allLabels = { en: "All", de: "Alle", ru: "Все", el: "Όλα", ro: "Toate", tr: "Tümü", fr: "Tous", it: "Tutti" };
+    const allLabel = currentLanguage === "bg" ? "Всички" : (allLabels[currentLanguage] || "All");
+    const allBtn = `<button type="button" data-category="all" class="${baseClasses} ${currentCategory === "all" ? activeClasses : inactiveClasses}">${allLabel}</button>`;
 
     const categoryBtns = categories.map(cat => {
         const isActive = currentCategory === cat;
-        return `<button type="button" data-category="${cat}" class="${baseClasses} ${isActive ? activeClasses : inactiveClasses}">${cat}</button>`;
+        return `<button type="button" data-category="${cat}" class="${baseClasses} ${isActive ? activeClasses : inactiveClasses}">${getCategoryLabel(cat)}</button>`;
     }).join('');
 
     nav.innerHTML = allBtn + categoryBtns;
@@ -578,12 +589,24 @@ async function loadMenu() {
         const enabledLangs = langData && langData.value ? langData.value.split(",").filter(Boolean) : [];
         const langLabels = { en: "EN", de: "DE", ru: "RU", el: "EL", ro: "RO", tr: "TR", fr: "FR", it: "IT" };
 
+        // Преводи на категориите (веднъж на категория, не по артикул)
+        const { data: catTransData } = await supabaseClient
+            .from("restaurant_settings")
+            .select("value")
+            .eq("key", "category_translations")
+            .maybeSingle();
+
+        if (catTransData && catTransData.value) {
+            try { categoryTranslations = JSON.parse(catTransData.value); } catch (e) { categoryTranslations = {}; }
+        }
+
         if (langSelect && enabledLangs.length > 0) {
             langSelect.innerHTML = `<option value="bg">BG</option>` +
                 enabledLangs.map(code => `<option value="${code}">${langLabels[code] || code.toUpperCase()}</option>`).join('');
             langSelect.classList.remove("hidden");
             langSelect.addEventListener("change", (e) => {
                 currentLanguage = e.target.value;
+                renderCategoryButtons();
                 renderMenu();
             });
         }
