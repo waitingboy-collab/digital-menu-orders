@@ -6,8 +6,18 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentCategory = "all";
 let searchQuery = "";
+let currentLanguage = "bg";
 let cachedItems = [];
 let cachedRestaurantName = "";
+
+// Връща преведения текст, ако е избран чужд език и преводът съществува,
+// иначе пада обратно към българския оригинал
+function getItemText(item, field) {
+    if (currentLanguage !== "bg" && item.translations && item.translations[currentLanguage] && item.translations[currentLanguage][field]) {
+        return item.translations[currentLanguage][field];
+    }
+    return item[field] || "";
+}
 
 function getCategories() {
     const seen = new Set();
@@ -32,9 +42,9 @@ function renderCategoryButtons() {
         return;
     }
 
-    const baseClasses = "flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition whitespace-nowrap cursor-pointer";
-    const activeClasses = "bg-cyan-800 text-white shadow-sm";
-    const inactiveClasses = "bg-white/70 text-gray-600 border border-gray-200 hover:bg-white";
+    const baseClasses = "flex-shrink-0 px-4 py-2 rounded-full text-sm font-bold transition whitespace-nowrap cursor-pointer border";
+    const activeClasses = "bg-amber-600 text-white border-amber-600 shadow-sm";
+    const inactiveClasses = "bg-white text-stone-600 border-stone-200 hover:border-amber-400";
 
     const allBtn = `<button type="button" data-category="all" class="${baseClasses} ${currentCategory === "all" ? activeClasses : inactiveClasses}">Всички</button>`;
 
@@ -62,7 +72,7 @@ function renderMenu() {
     if (!container) return;
 
     if (!cachedItems || cachedItems.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-400">Менюто е празно.</p>';
+        container.innerHTML = '<p class="text-center text-stone-400">Менюто е празно.</p>';
         return;
     }
 
@@ -73,29 +83,34 @@ function renderMenu() {
     });
 
     if (visibleItems.length === 0) {
-        container.innerHTML = '<p class="text-center text-gray-400">Няма намерени артикули.</p>';
+        container.innerHTML = '<p class="text-center text-stone-400">Няма намерени артикули.</p>';
         return;
     }
 
     container.innerHTML = visibleItems.map(item => {
         const hasStock = item.quantity !== null && item.quantity !== undefined;
         const lowStock = hasStock && item.quantity > 0 && item.quantity <= 3;
-        const stockNote = lowStock ? `<p class="text-xs text-orange-500 font-bold mt-1">Остават: ${item.quantity} бр.</p>` : '';
+        const stockNote = lowStock ? `<p class="text-xs text-amber-600 font-bold mt-1">Остават: ${item.quantity} бр.</p>` : '';
+        const isPopular = popularItemNames.has(item.name);
+        const popularBadge = isPopular
+            ? `<span class="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow">🔥 Популярно</span>`
+            : '';
 
         return `
-        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 cursor-pointer relative" data-open-item="${item.id}">
+        <div class="bg-white p-4 rounded-xl border border-stone-200 shadow-sm cursor-pointer relative hover:border-amber-400 hover:shadow-md transition-all" data-open-item="${item.id}">
+            ${popularBadge}
             ${item.image_url ? `
-            <img src="${item.image_url}" alt="${item.name || ''}"
+            <img src="${item.image_url}" alt="${getItemText(item, 'name')}"
                  class="w-full h-40 object-cover rounded-lg mb-3"
                  onerror="this.style.display='none'">
             ` : ''}
-            <h3 class="text-lg font-bold">${item.name || 'Без име'}</h3>
-            <p class="text-sm text-gray-500">${item.description || ''}</p>
+            <h3 class="font-display text-lg font-semibold text-stone-900">${getItemText(item, 'name') || 'Без име'}</h3>
+            <p class="text-sm text-stone-500">${getItemText(item, 'description')}</p>
             ${stockNote}
             <div class="flex items-center justify-between mt-2">
                 <p class="text-amber-600 font-bold">${parseFloat(item.price).toFixed(2)} €</p>
                 <button type="button" data-quick-add="${item.id}"
-                    class="bg-cyan-800 hover:bg-cyan-900 text-white text-xs font-bold w-8 h-8 rounded-full cursor-pointer">+</button>
+                    class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold w-8 h-8 rounded-full cursor-pointer">+</button>
             </div>
         </div>
     `;
@@ -125,8 +140,8 @@ function openItemModal(itemId) {
     const modal = document.getElementById("item-modal");
     const img = document.getElementById("item-modal-img");
 
-    document.getElementById("item-modal-name").textContent = item.name || "Без име";
-    document.getElementById("item-modal-desc").textContent = item.description || "";
+    document.getElementById("item-modal-name").textContent = getItemText(item, 'name') || "Без име";
+    document.getElementById("item-modal-desc").textContent = getItemText(item, 'description');
     document.getElementById("item-modal-price").textContent = parseFloat(item.price).toFixed(2) + " €";
 
     if (item.image_url) {
@@ -204,20 +219,20 @@ function renderCartModal() {
 
     const entries = Object.entries(cart);
     if (entries.length === 0) {
-        list.innerHTML = '<p class="text-center text-gray-400 text-sm py-6">Количката е празна.</p>';
+        list.innerHTML = '<p class="text-center text-stone-400 text-sm py-6">Количката е празна.</p>';
     } else {
         list.innerHTML = entries.map(([itemId, entry]) => `
-            <div class="flex items-center justify-between gap-3 border-b border-gray-50 pb-3">
+            <div class="flex items-center justify-between gap-3 border-b border-stone-100 pb-3">
                 <div class="flex-1 min-w-0">
-                    <p class="font-bold text-sm truncate">${entry.item.name || 'Без име'}</p>
-                    <p class="text-xs text-gray-400">${parseFloat(entry.item.price).toFixed(2)} € / бр.</p>
+                    <p class="font-bold text-sm truncate text-stone-900">${getItemText(entry.item, 'name') || 'Без име'}</p>
+                    <p class="text-xs text-stone-400">${parseFloat(entry.item.price).toFixed(2)} € / бр.</p>
                 </div>
                 <div class="flex items-center gap-2 flex-shrink-0">
                     <button type="button" data-qty-change="${itemId}" data-delta="-1"
-                        class="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 font-bold cursor-pointer">−</button>
-                    <span class="font-bold text-sm w-4 text-center">${entry.qty}</span>
+                        class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold cursor-pointer">−</button>
+                    <span class="font-bold text-sm w-4 text-center text-stone-900">${entry.qty}</span>
                     <button type="button" data-qty-change="${itemId}" data-delta="1"
-                        class="w-7 h-7 rounded-full bg-gray-100 hover:bg-gray-200 font-bold cursor-pointer">+</button>
+                        class="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold cursor-pointer">+</button>
                 </div>
             </div>
         `).join('');
@@ -321,6 +336,105 @@ async function submitOrder() {
     }
 }
 
+// ---------- Резервации ----------
+
+function openReservationModal() {
+    const modal = document.getElementById("reservation-modal");
+    if (modal) {
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+    }
+}
+
+function closeReservationModal() {
+    const modal = document.getElementById("reservation-modal");
+    if (modal) {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+    }
+}
+
+async function submitReservation() {
+    const errorEl = document.getElementById("reservation-error");
+    const submitBtn = document.getElementById("submit-reservation-btn");
+    if (errorEl) errorEl.classList.add("hidden");
+
+    const name = document.getElementById("reservation-name").value.trim();
+    const phone = document.getElementById("reservation-phone").value.trim();
+    const date = document.getElementById("reservation-date").value;
+    const time = document.getElementById("reservation-time").value;
+    const partySize = parseInt(document.getElementById("reservation-party-size").value, 10) || 1;
+    const notes = document.getElementById("reservation-notes").value.trim() || null;
+
+    if (!name || !phone || !date || !time) {
+        if (errorEl) {
+            errorEl.textContent = "Моля, попълни име, телефон, дата и час.";
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "⏳ Изпращане...";
+    }
+
+    const { error } = await supabaseClient.from("reservations").insert([{
+        customer_name: name,
+        phone: phone,
+        reservation_date: date,
+        reservation_time: time,
+        party_size: partySize,
+        notes: notes,
+        status: "pending"
+    }]);
+
+    if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Изпрати заявка за резервация";
+    }
+
+    if (error) {
+        if (errorEl) {
+            errorEl.textContent = "Грешка при изпращане: " + error.message;
+            errorEl.classList.remove("hidden");
+        }
+        return;
+    }
+
+    // Изчиства формата
+    document.getElementById("reservation-name").value = "";
+    document.getElementById("reservation-phone").value = "";
+    document.getElementById("reservation-date").value = "";
+    document.getElementById("reservation-time").value = "";
+    document.getElementById("reservation-party-size").value = "2";
+    document.getElementById("reservation-notes").value = "";
+
+    closeReservationModal();
+
+    const successModal = document.getElementById("reservation-success-modal");
+    if (successModal) {
+        successModal.classList.remove("hidden");
+        successModal.classList.add("flex");
+    }
+}
+
+let popularItemNames = new Set();
+
+// Взема имената на топ продаваните артикули (по всички завършени поръчки) за баджа "Популярно"
+async function loadPopularItems() {
+    try {
+        const { data, error } = await supabaseClient.rpc("get_top_selling_items", { item_limit: 5 });
+        if (error) {
+            console.error("Грешка при зареждане на популярните артикули:", error.message);
+            return;
+        }
+        popularItemNames = new Set((data || []).map(row => row.name));
+    } catch (e) {
+        console.error("Критична грешка при популярните артикули:", e);
+    }
+}
+
 // Зарежда/презарежда само артикулите (без да пипа event listeners) - използва се и за опресняване след поръчка
 async function refreshMenuItems() {
     const { data, error } = await supabaseClient
@@ -394,6 +508,32 @@ async function loadMenu() {
         });
     }
 
+    // Резервации
+    const reservationFab = document.getElementById("reservation-fab");
+    if (reservationFab) reservationFab.addEventListener("click", openReservationModal);
+
+    const reservationModalCloseBtn = document.getElementById("reservation-modal-close");
+    if (reservationModalCloseBtn) reservationModalCloseBtn.addEventListener("click", closeReservationModal);
+
+    const reservationModal = document.getElementById("reservation-modal");
+    if (reservationModal) {
+        reservationModal.addEventListener("click", (e) => {
+            if (e.target.id === "reservation-modal") closeReservationModal();
+        });
+    }
+
+    const submitReservationBtn = document.getElementById("submit-reservation-btn");
+    if (submitReservationBtn) submitReservationBtn.addEventListener("click", submitReservation);
+
+    const reservationSuccessCloseBtn = document.getElementById("reservation-success-close");
+    if (reservationSuccessCloseBtn) {
+        reservationSuccessCloseBtn.addEventListener("click", () => {
+            const modal = document.getElementById("reservation-success-modal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        });
+    }
+
     try {
         // 1. Вземане на името на заведението
         const { data: resData } = await supabaseClient
@@ -421,13 +561,35 @@ async function loadMenu() {
             const bgSun = document.getElementById("bg-sun");
             if (bgPhoto) {
                 bgPhoto.style.backgroundImage = `url("${bgData.value}")`;
-                bgPhoto.classList.remove("bg-gradient-to-b", "from-sky-200", "via-cyan-100", "to-amber-50");
+                bgPhoto.classList.remove("bg-gradient-to-b", "from-amber-50", "via-[#FBF8F3]", "to-orange-50");
             }
             if (bgOverlay) bgOverlay.classList.remove("hidden");
             if (bgSun) bgSun.classList.add("hidden");
         }
 
+        // 1в. Активни езици — показва селектора само ако има повече от 1
+        const { data: langData } = await supabaseClient
+            .from("restaurant_settings")
+            .select("value")
+            .eq("key", "enabled_languages")
+            .maybeSingle();
+
+        const langSelect = document.getElementById("language-select");
+        const enabledLangs = langData && langData.value ? langData.value.split(",").filter(Boolean) : [];
+        const langLabels = { en: "EN", de: "DE", ru: "RU", el: "EL", ro: "RO", tr: "TR", fr: "FR", it: "IT" };
+
+        if (langSelect && enabledLangs.length > 0) {
+            langSelect.innerHTML = `<option value="bg">BG</option>` +
+                enabledLangs.map(code => `<option value="${code}">${langLabels[code] || code.toUpperCase()}</option>`).join('');
+            langSelect.classList.remove("hidden");
+            langSelect.addEventListener("change", (e) => {
+                currentLanguage = e.target.value;
+                renderMenu();
+            });
+        }
+
         // 2. Вземане на менюто (само наличните и с ненулева наличност)
+        await loadPopularItems();
         await refreshMenuItems();
     } catch (e) {
         console.error("Критична грешка:", e);
