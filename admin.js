@@ -1366,6 +1366,89 @@ async function fetchAndRenderCashHistory() {
     }).join('');
 }
 
+// ============================================================
+// НАСТРОЙКИ НА МОДУЛИТЕ
+// ============================================================
+
+const MODULE_LABELS = {
+    stats: "📊 Статистика на продажбите",
+    inventory: "📦 Склад",
+    languages: "🌍 Езици / превод",
+    reservations: "📅 Резервации",
+    shifts: "👥 Смени"
+};
+
+const DEFAULT_MODULES = {
+    stats: true,
+    inventory: true,
+    languages: true,
+    reservations: true,
+    shifts: true
+};
+
+let enabledModules = { ...DEFAULT_MODULES };
+
+async function loadModuleSettings() {
+    const { data, error } = await supabaseClient
+        .from("restaurant_settings")
+        .select("value")
+        .eq("key", "enabled_modules")
+        .maybeSingle();
+
+    if (!error && data && data.value) {
+        try {
+            enabledModules = { ...DEFAULT_MODULES, ...JSON.parse(data.value) };
+        } catch (e) {
+            enabledModules = { ...DEFAULT_MODULES };
+        }
+    } else {
+        enabledModules = { ...DEFAULT_MODULES };
+    }
+
+    renderModuleToggleList();
+    applyModuleVisibility();
+}
+
+function renderModuleToggleList() {
+    const container = document.getElementById("module-toggle-list");
+    if (!container) return;
+
+    container.innerHTML = Object.keys(MODULE_LABELS).map(key => `
+        <label class="flex items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+            <span class="text-sm font-bold text-slate-700">${MODULE_LABELS[key]}</span>
+            <input type="checkbox" class="module-toggle-checkbox w-4 h-4" data-key="${key}" ${enabledModules[key] ? "checked" : ""}>
+        </label>
+    `).join('');
+
+    container.querySelectorAll(".module-toggle-checkbox").forEach(cb => {
+        cb.addEventListener("change", saveModuleSettings);
+    });
+}
+
+async function saveModuleSettings() {
+    document.querySelectorAll(".module-toggle-checkbox").forEach(cb => {
+        enabledModules[cb.dataset.key] = cb.checked;
+    });
+
+    const { error } = await supabaseClient
+        .from("restaurant_settings")
+        .upsert({ key: "enabled_modules", value: JSON.stringify(enabledModules) }, { onConflict: "key" });
+
+    if (error) {
+        alert("Грешка при запазване на настройките: " + error.message);
+        return;
+    }
+
+    applyModuleVisibility();
+}
+
+function applyModuleVisibility() {
+    Object.keys(MODULE_LABELS).forEach(key => {
+        const section = document.getElementById(`module-section-${key}`);
+        if (section) section.classList.toggle("hidden", enabledModules[key] === false);
+    });
+}
+
 // Инициализация при зареждане на DOM
 document.addEventListener("DOMContentLoaded", () => {
     const loginBtn = document.getElementById("login-btn");
@@ -1389,6 +1472,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 fetchAndRender();
                 loadRestaurantName();
                 loadBackgroundImage();
+                loadModuleSettings();
                 loadSalesStats();
                 fetchAndRenderInventory();
                 loadSuppliersIntoForm();
