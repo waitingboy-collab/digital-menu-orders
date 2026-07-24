@@ -139,7 +139,7 @@
                     <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">Текущи артикули в менюто</h3>
                     <span id="items-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 позиции</span>
                 </div>
-                <div class="overflow-x-auto">
+                <div class="overflow-x-auto hidden md:block">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
                             <tr>
@@ -156,6 +156,9 @@
                             <!-- Динамични редове -->
                         </tbody>
                     </table>
+                </div>
+                <div id="admin-items-cards" class="md:hidden divide-y divide-gray-100">
+                    <!-- Динамични карти за мобилен изглед -->
                 </div>
             </div>
 
