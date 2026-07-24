@@ -14,6 +14,7 @@ async function fetchAndRender() {
     }
 
     const tbody = document.getElementById("admin-items-table");
+    const cardsContainer = document.getElementById("admin-items-cards");
     const countEl = document.getElementById("items-count");
     if (tbody) {
         tbody.innerHTML = "";
@@ -55,6 +56,54 @@ async function fetchAndRender() {
                         <button onclick="deleteItem('${item.id}')" class="text-red-600">Изтрий</button>
                     </td>
                 </tr>`;
+        });
+    }
+
+    if (cardsContainer) {
+        cardsContainer.innerHTML = "";
+        data.forEach(item => {
+            const available = item.is_available !== false;
+            const thumb = item.image_url
+                ? `<img src="${item.image_url}" alt="" class="w-14 h-14 object-cover rounded-lg flex-shrink-0">`
+                : `<div class="w-14 h-14 rounded-lg bg-gray-100 flex items-center justify-center text-gray-300 text-[10px] flex-shrink-0">няма</div>`;
+
+            const hasStock = item.quantity !== null && item.quantity !== undefined;
+            const qty = hasStock ? item.quantity : null;
+            const stockRow = hasStock ? `
+                <div class="flex items-center gap-1.5">
+                    <span class="text-xs text-gray-400 mr-1">Наличност:</span>
+                    <button onclick="adjustStock('${item.id}', ${qty}, -1)"
+                        class="w-7 h-7 rounded-full bg-gray-100 active:bg-gray-200 font-bold text-sm cursor-pointer">−</button>
+                    <span class="font-bold text-sm w-6 text-center ${qty === 0 ? 'text-red-600' : 'text-slate-700'}">${qty}</span>
+                    <button onclick="adjustStock('${item.id}', ${qty}, 1)"
+                        class="w-7 h-7 rounded-full bg-gray-100 active:bg-gray-200 font-bold text-sm cursor-pointer">+</button>
+                </div>
+            ` : `<span class="text-xs text-gray-400">Неограничено количество</span>`;
+
+            cardsContainer.innerHTML += `
+                <div class="p-3 flex gap-3">
+                    ${thumb}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="font-bold text-sm truncate">${item.name || ''}</p>
+                                <p class="text-xs text-gray-400">${item.category || ''}</p>
+                            </div>
+                            <p class="font-bold text-sm text-amber-600 whitespace-nowrap">€${item.price || '0'}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            ${stockRow}
+                            <button onclick="toggleAvailability('${item.id}', ${available})"
+                                class="px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${available ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                                ${available ? 'Наличен' : 'Изчерпан'}
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-4 mt-2 pt-2 border-t border-gray-100">
+                            <button onclick="editItem('${item.id}', '${item.name || ''}', '${item.category || ''}', ${item.price || 0}, '${item.description || ''}', '${item.image_url || ''}', ${available}, ${qty === null ? 'null' : qty})" class="text-blue-600 text-xs font-bold cursor-pointer py-1">✏️ Редактирай</button>
+                            <button onclick="deleteItem('${item.id}')" class="text-red-600 text-xs font-bold cursor-pointer py-1">🗑️ Изтрий</button>
+                        </div>
+                    </div>
+                </div>`;
         });
     }
 }
