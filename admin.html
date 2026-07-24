@@ -80,6 +80,24 @@
                 </div>
                 <p class="text-[11px] text-gray-400 mt-2">Ако не качиш нищо, менюто ползва морски пейзаж по подразбиране.</p>
             </div>
+
+            <!-- ============================================================ -->
+            <!-- НАСТРОЙКИ НА МОДУЛИТЕ (нова секция) -->
+            <!-- ============================================================ -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="p-4 bg-slate-50 border-b border-gray-100">
+                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">🧩 Настройки на модулите</h3>
+                </div>
+                <div class="p-4 space-y-2">
+                    <p class="text-xs text-gray-500 mb-2">Изключи модул, ако не го ползваш — секцията ще изчезне от таблото ти.</p>
+                    <div id="module-toggle-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <!-- Динамично попълнено от JS -->
+                    </div>
+                </div>
+            </div>
+            <!-- ============================================================ -->
+            <!-- КРАЙ НА НАСТРОЙКИ НА МОДУЛИТЕ -->
+            <!-- ============================================================ -->
             
             <!-- ФОРМА ЗА ДОБАВЯНЕ / РЕДАКТИРАНЕ -->
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
@@ -141,7 +159,7 @@
             </div>
 
             <!-- СТАТИСТИКА НА ПРОДАЖБИТЕ -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="module-section-stats" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
                     <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📊 Статистика на продажбите</h3>
                     <div class="flex items-center gap-2">
@@ -192,7 +210,7 @@
             <!-- ============================================================ -->
             <!-- СКЛАД (нова секция) -->
             <!-- ============================================================ -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="module-section-inventory" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
                     <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📦 Склад</h3>
                     <div class="flex items-center gap-2">
@@ -336,7 +354,7 @@
             <!-- ============================================================ -->
             <!-- ЕЗИЦИ / ПРЕВОД (нова секция) -->
             <!-- ============================================================ -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="module-section-languages" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-gray-100">
                     <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">🌍 Езици на менюто</h3>
                 </div>
@@ -360,7 +378,7 @@
             <!-- ============================================================ -->
             <!-- РЕЗЕРВАЦИИ (нова секция) -->
             <!-- ============================================================ -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="module-section-reservations" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📅 Резервации</h3>
                     <span id="reservations-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 чакащи</span>
@@ -389,7 +407,7 @@
             <!-- ============================================================ -->
             <!-- СМЕНИ (нова секция) -->
             <!-- ============================================================ -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <div id="module-section-shifts" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="p-4 bg-slate-50 border-b border-gray-100">
                     <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">👥 Смени</h3>
                 </div>
