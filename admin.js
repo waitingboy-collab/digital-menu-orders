@@ -1419,13 +1419,12 @@ function renderModuleToggleList() {
             <input type="checkbox" class="module-toggle-checkbox w-4 h-4" data-key="${key}" ${enabledModules[key] ? "checked" : ""}>
         </label>
     `).join('');
-
-    container.querySelectorAll(".module-toggle-checkbox").forEach(cb => {
-        cb.addEventListener("change", saveModuleSettings);
-    });
 }
 
 async function saveModuleSettings() {
+    const btn = document.getElementById("save-modules-btn");
+    if (btn) { btn.disabled = true; btn.textContent = "⏳ Запазване..."; }
+
     document.querySelectorAll(".module-toggle-checkbox").forEach(cb => {
         enabledModules[cb.dataset.key] = cb.checked;
     });
@@ -1434,12 +1433,15 @@ async function saveModuleSettings() {
         .from("restaurant_settings")
         .upsert({ key: "enabled_modules", value: JSON.stringify(enabledModules) }, { onConflict: "key" });
 
+    if (btn) { btn.disabled = false; btn.textContent = "💾 Запази настройките"; }
+
     if (error) {
         alert("Грешка при запазване на настройките: " + error.message);
         return;
     }
 
     applyModuleVisibility();
+    alert("Настройките на модулите са запазени!");
 }
 
 function applyModuleVisibility() {
@@ -1628,6 +1630,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Смени — график
     const addShiftBtn = document.getElementById("add-shift-btn");
     if (addShiftBtn) addShiftBtn.addEventListener("click", addShift);
+
+    // Настройки на модулите
+    const saveModulesBtn = document.getElementById("save-modules-btn");
+    if (saveModulesBtn) saveModulesBtn.addEventListener("click", saveModuleSettings);
 
     // Езици / превод
     const saveLanguagesBtn = document.getElementById("save-languages-btn");
