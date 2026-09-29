@@ -1,196 +1,369 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Дигитално QR Меню</title>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- ОФИЦИАЛНОТО SDK НА SUPABASE -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Шрифтове: елегантен serif за име на заведението + Inter за всичко останало -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; }
-        .font-display { font-family: 'Fraunces', serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F3F4F7">
+<title>Дигитално QR Меню</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --porcelain:#F3F4F7; --white:#FFFFFF; --mist:#E9ECF2; --rim:#E3E7EF;
+  --ink:#121833; --ink-2:#596178; --ink-3:#8C93A6;
+  --glaze:#1E3CB4; --glaze-deep:#162C8A; --glaze-soft:#E6EBFA; --glaze-line:#CDD6F3;
+  --alert:#B42318;
+  --serif:"Cormorant Garamond","Cormorant",Georgia,"Times New Roman",serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--porcelain);color:var(--ink);font:400 15px/1.55 var(--sans);-webkit-font-smoothing:antialiased;padding-bottom:40px}
+body.has-bar{padding-bottom:120px}
+body.locked{overflow:hidden}
+.hidden{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed}
+:focus-visible{outline:2.5px solid var(--glaze);outline-offset:3px;border-radius:10px}
+.wrap{max-width:1040px;margin:0 auto;padding:0 18px}
+.num{font-variant-numeric:lining-nums tabular-nums}
+
+/* ---------- Top ---------- */
+.demo-note{background:var(--glaze);color:#fff;font-size:12.5px;font-weight:600;text-align:center;padding:8px 16px;padding-top:calc(8px + env(safe-area-inset-top))}
+.topline{display:flex;align-items:center;gap:10px;min-height:40px;padding-top:calc(14px + env(safe-area-inset-top))}
+.demo-note:not(.hidden)+header .topline{padding-top:14px}
+.topline .spacer{flex:1}
+.table-chip{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px 0 6px;border-radius:999px;background:var(--white);box-shadow:inset 0 0 0 1px var(--rim);font-size:13.5px;font-weight:600}
+.table-chip i{width:26px;height:26px;border-radius:50%;background:var(--glaze);color:#fff;display:grid;place-items:center;font-style:normal;font-size:12.5px;font-weight:700}
+.lang{appearance:none;-webkit-appearance:none;height:36px;padding:0 30px 0 14px;border:0;border-radius:999px;background:var(--white) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23121833' stroke-width='1.6'/%3E%3C/svg%3E") right 13px center no-repeat;box-shadow:inset 0 0 0 1px var(--rim);font:600 13px var(--sans);color:var(--ink)}
+
+/* ---------- Hero ---------- */
+.stage{position:relative;text-align:center;padding-top:34px;padding-bottom:8px;overflow:hidden}
+.rings{position:absolute;left:50%;top:-40px;transform:translateX(-50%);width:640px;height:640px;pointer-events:none;color:var(--glaze-line)}
+.stage>*:not(.rings){position:relative}
+.medallion{width:188px;height:188px;margin:6px auto 22px;border-radius:50%;background:var(--white);padding:12px;box-shadow:0 30px 50px -24px rgba(18,24,51,.45),0 0 0 1px var(--rim)}
+.medallion div{width:100%;height:100%;border-radius:50%;background:var(--mist) center/cover no-repeat;box-shadow:inset 0 0 0 1px rgba(18,24,51,.06)}
+.title{font-family:var(--serif);font-weight:500;font-size:clamp(46px,13vw,92px);line-height:.95;letter-spacing:-.015em;margin:26px auto 0;max-width:12ch;overflow-wrap:anywhere;min-height:.95em}
+.medallion:not(.hidden)+.title{margin-top:0}
+.hero-sub{font-family:var(--serif);font-style:italic;font-size:21px;color:var(--ink-2);margin:12px auto 0;max-width:30ch;line-height:1.35}
+.res-link{display:inline-flex;align-items:center;gap:9px;margin-top:22px;height:46px;padding:0 22px;border-radius:999px;border:0;background:var(--ink);color:#fff;font-weight:600;font-size:14px;letter-spacing:.01em;transition:background .2s}
+.res-link:hover{background:var(--glaze)}
+.search{position:relative;display:block;max-width:520px;margin:30px auto 0}
+.search svg{position:absolute;left:20px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
+.search input{width:100%;height:54px;border:0;border-radius:999px;background:var(--white);box-shadow:0 1px 2px rgba(18,24,51,.05),inset 0 0 0 1px var(--rim);padding:0 52px;font:500 16px var(--sans);color:var(--ink)}
+.search input::placeholder{color:var(--ink-3);font-weight:400}
+.search input:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--glaze)}
+.search input::-webkit-search-cancel-button{display:none}
+.search-clear{position:absolute;right:9px;top:50%;transform:translateY(-50%);width:36px;height:36px;border:0;border-radius:50%;background:var(--porcelain);font-size:18px;line-height:1}
+
+/* ---------- Tabs ---------- */
+.tabs-bar{position:sticky;top:0;z-index:20;margin-top:22px;background:rgba(243,244,247,.9);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);transition:box-shadow .25s}
+.tabs-bar.stuck{box-shadow:0 1px 0 var(--rim)}
+.tabs{display:flex;justify-content:safe center;gap:4px;overflow-x:auto;scrollbar-width:none;max-width:1040px;margin:0 auto;padding:6px 12px 4px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;position:relative;border:0;background:none;height:46px;padding:0 14px;font-weight:600;font-size:14px;color:var(--ink-3);white-space:nowrap;transition:color .2s}
+.tab:hover{color:var(--ink)}
+.tab::after{content:"";position:absolute;left:50%;bottom:4px;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--glaze);transform:scale(0);transition:transform .25s var(--ease)}
+.tab[aria-current="true"]{color:var(--ink)}
+.tab[aria-current="true"]::after{transform:scale(1)}
+
+/* ---------- Menu ---------- */
+.sec{scroll-margin-top:64px;padding-top:40px}
+.sec-head{display:flex;align-items:center;gap:16px}
+.sec-head h2{font-family:var(--serif);font-style:italic;font-weight:500;font-size:clamp(36px,9vw,48px);line-height:1;letter-spacing:-.01em;margin:0}
+.sec-head .rule{flex:1;height:1px;background:var(--rim)}
+.sec-head .cnt{font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:64px 12px;padding-top:66px}
+.dish{position:relative;display:flex;flex-direction:column;align-items:center;text-align:center;background:var(--white);border-radius:28px;padding:0 12px 12px;cursor:pointer;box-shadow:0 1px 1px rgba(18,24,51,.03);transition:box-shadow .3s var(--ease)}
+.dish:hover{box-shadow:0 18px 40px -22px rgba(18,24,51,.35)}
+.plate{position:relative;flex:none;width:120px;height:120px;margin:-54px auto 12px;border-radius:50%;background:var(--white);display:grid;place-items:center;box-shadow:0 16px 26px -12px rgba(18,24,51,.38),0 0 0 1px var(--rim);transition:transform .6s var(--ease)}
+.plate::before{content:"";position:absolute;inset:9px;border-radius:50%;box-shadow:inset 0 0 0 1px var(--rim);pointer-events:none}
+.plate img{position:absolute;inset:11px;width:calc(100% - 22px);height:calc(100% - 22px);border-radius:50%;object-fit:cover;z-index:1}
+.plate-mark{font-family:var(--serif);font-style:italic;font-weight:500;font-size:50px;line-height:1;color:var(--glaze);transform:translateY(-3px)}
+.dish:hover .plate{transform:rotate(10deg)}
+.fav{position:absolute;top:50px;left:50%;transform:translateX(-50%);z-index:2}
+.fav span{display:inline-block;background:var(--glaze);color:#fff;font-size:11px;font-weight:700;letter-spacing:.02em;padding:4px 10px;border-radius:999px;box-shadow:0 4px 10px rgba(30,60,180,.3);white-space:nowrap}
+.dish h3{font-family:var(--serif);font-weight:600;font-size:21px;line-height:1.1;margin:0;overflow-wrap:anywhere}
+.desc{font-size:13px;line-height:1.45;color:var(--ink-2);margin:6px 0 0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.price{font-weight:700;font-size:15px;margin-top:10px;font-variant-numeric:lining-nums tabular-nums}
+.tag-low{color:var(--alert);font-size:13px;font-weight:600}
+.tag-pop{background:var(--glaze);color:#fff;font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px}
+.low{font-size:12px;font-weight:600;color:var(--alert);margin-top:2px}
+.ctrl{width:100%;margin-top:auto;padding-top:12px}
+.add-btn{width:100%;height:44px;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-radius:999px;background:var(--porcelain);color:var(--ink);font-weight:600;font-size:14px;transition:background .2s,color .2s}
+.add-btn:hover{background:var(--glaze);color:#fff}
+.stepper{display:flex;align-items:center;justify-content:space-between;width:100%;height:44px;border-radius:999px;background:var(--glaze);color:#fff}
+.stepper button{width:44px;height:44px;border:0;background:transparent;color:inherit;display:grid;place-items:center;border-radius:50%}
+.stepper button:disabled{opacity:.35}
+.stepper span{font-weight:700;font-variant-numeric:tabular-nums}
+.stepper.soft{width:auto;height:36px;background:var(--porcelain);color:var(--ink)}
+.stepper.soft button{width:34px;height:36px}
+.stepper.soft span{min-width:18px;text-align:center}
+
+.state{text-align:center;padding:60px 12px;color:var(--ink-2)}
+.state p{font-family:var(--serif);font-style:italic;font-size:22px;margin:0 0 18px;color:var(--ink)}
+.btn-quiet{height:44px;padding:0 20px;border:0;border-radius:999px;background:var(--white);box-shadow:inset 0 0 0 1px var(--rim);font-weight:600}
+.sk{display:block;background:var(--mist);border-radius:999px;animation:pulse 1.5s ease-in-out infinite}
+.sk-title{width:5.5ch;height:.8em;margin:0 auto;border-radius:18px}
+@keyframes pulse{50%{opacity:.45}}
+.foot{margin-top:70px;padding:24px 0;text-align:center;color:var(--ink-3);font-size:12.5px}
+.foot b{font-weight:600;color:var(--ink-2)}
+
+/* ---------- Order pill ---------- */
+.pill{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom));z-index:30;width:min(440px,calc(100% - 28px));height:64px;display:flex;align-items:center;gap:14px;padding:0 22px 0 8px;border:0;border-radius:999px;background:var(--ink);color:#fff;box-shadow:0 22px 40px -14px rgba(18,24,51,.6);transform:translate(-50%,160%);transition:transform .5s var(--ease),background .2s}
+.pill.shown{transform:translate(-50%,0)}
+.pill:hover{background:var(--glaze-deep)}
+.pill-count{width:48px;height:48px;flex:none;border-radius:50%;background:var(--glaze);display:grid;place-items:center;font-weight:700;font-size:16px;transition:transform .25s var(--ease)}
+.pill-count.bump{transform:scale(1.15)}
+.pill-label{flex:1;text-align:left;font-weight:600;font-size:15px}
+.pill-total{font-family:var(--serif);font-weight:600;font-size:24px;font-variant-numeric:lining-nums tabular-nums}
+
+/* ---------- Sheets ---------- */
+.backdrop{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center;background:rgba(18,24,51,0);transition:background .3s}
+.backdrop.open{background:rgba(18,24,51,.42)}
+.sheet{position:relative;width:100%;max-width:540px;background:var(--white);border-radius:34px 34px 0 0;transform:translateY(100%);transition:transform .38s var(--ease);outline:none}
+.backdrop.open .sheet{transform:none}
+.sheet-scroll{max-height:92vh;max-height:92dvh;overflow:auto;overscroll-behavior:contain;padding:26px 22px calc(22px + env(safe-area-inset-bottom))}
+.sheet h2{font-family:var(--serif);font-weight:500;font-size:34px;line-height:1.05;letter-spacing:-.01em;margin:0}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.x{width:42px;height:42px;flex:none;border:0;border-radius:50%;background:var(--porcelain);display:grid;place-items:center}
+.x:hover{background:var(--mist)}
+.btn-main{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;height:56px;margin-top:20px;padding:0 24px;border:0;border-radius:999px;background:var(--glaze);color:#fff;font-weight:700;font-size:15.5px;letter-spacing:.01em;transition:background .2s}
+.btn-main:hover:not(:disabled){background:var(--glaze-deep)}
+.btn-main:disabled{opacity:.55}
+.btn-main .sum{font-family:var(--serif);font-weight:600;font-size:21px;font-variant-numeric:lining-nums tabular-nums;white-space:nowrap}
+.btn-main.split{justify-content:space-between}
+
+/* item sheet with floating plate */
+.plate-sheet{margin-top:130px}
+.plate-sheet .sheet-scroll{max-height:calc(92dvh - 130px);padding-top:128px;text-align:center}
+.plate.hero{position:absolute;left:50%;top:-118px;width:236px;height:236px;margin:0 0 0 -118px;z-index:3;box-shadow:0 34px 50px -22px rgba(18,24,51,.55),0 0 0 1px var(--rim)}
+.plate.hero::before{inset:14px}
+.plate.hero img{inset:18px;width:calc(100% - 36px);height:calc(100% - 36px)}
+.plate.hero .plate-mark{font-size:100px}
+.backdrop.open .plate.hero{animation:plateIn .8s var(--ease) both}
+@keyframes plateIn{from{transform:rotate(-70deg) scale(.82);opacity:0}to{transform:none;opacity:1}}
+.x.corner{position:absolute;top:16px;right:16px;z-index:4}
+.plate-sheet h2{font-size:38px}
+.item-desc{color:var(--ink-2);margin:12px auto 0;max-width:40ch}
+.item-price{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px;font-weight:700;font-size:16px}
+.item-foot{display:flex;align-items:center;gap:10px;margin-top:26px}
+.item-foot .stepper{width:136px;flex:none;height:56px;background:var(--porcelain);color:var(--ink)}
+.item-foot .stepper button{height:56px;width:48px}
+.item-foot .btn-main{margin-top:0;flex:1;min-width:0}
+
+/* cart */
+.order-meta{display:flex;justify-content:space-between;color:var(--ink-3);font-size:13px;font-weight:600;margin:6px 0 8px}
+.cline{display:grid;grid-template-columns:56px 1fr auto;gap:14px;align-items:center;padding:14px 0;border-bottom:1px solid var(--mist)}
+.plate.xs{width:56px;height:56px;margin:0;box-shadow:0 6px 12px -6px rgba(18,24,51,.35),0 0 0 1px var(--rim)}
+.plate.xs::before{inset:4px}
+.plate.xs img{inset:5px;width:calc(100% - 10px);height:calc(100% - 10px)}
+.plate.xs .plate-mark{font-size:26px;transform:translateY(-1px)}
+.cl-name{font-family:var(--serif);font-weight:600;font-size:19px;line-height:1.15;margin:0}
+.cl-unit{font-size:12.5px;color:var(--ink-3);margin:2px 0 0}
+.cl-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.cl-sum{font-weight:700;font-variant-numeric:tabular-nums}
+.total{display:flex;align-items:baseline;justify-content:space-between;padding:18px 0 2px}
+.total span{font-weight:600;color:var(--ink-2)}
+.total b{font-family:var(--serif);font-weight:600;font-size:36px;font-variant-numeric:lining-nums tabular-nums}
+.empty-cart{text-align:center;font-family:var(--serif);font-style:italic;font-size:21px;color:var(--ink-2);padding:30px 0}
+
+.field{display:block;margin-top:14px;text-align:left}
+.field>label,.field-label{display:block;font-size:13px;font-weight:600;color:var(--ink-2);margin:0 0 7px 4px}
+.field input,.field textarea{width:100%;height:54px;border:0;border-radius:18px;background:var(--porcelain);padding:0 18px;font:500 16px var(--sans);color:var(--ink);transition:box-shadow .2s,background .2s}
+.field textarea{height:90px;padding:15px 18px;resize:vertical}
+.field input:focus,.field textarea:focus{outline:none;background:var(--white);box-shadow:inset 0 0 0 1.5px var(--glaze)}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.quick{display:flex;gap:6px;margin-top:8px}
+.quick button{height:34px;padding:0 14px;border:0;border-radius:999px;background:var(--porcelain);font-size:13px;font-weight:600;color:var(--ink-2)}
+.quick button[aria-pressed="true"]{background:var(--glaze-soft);color:var(--glaze-deep)}
+.party{display:flex;align-items:center;justify-content:space-between;height:54px;border-radius:18px;background:var(--porcelain);padding:0 4px}
+.party button{width:46px;height:46px;border:0;border-radius:50%;background:transparent;font-size:20px}
+.party button:hover{background:var(--white)}
+.party input{width:50px;height:100%;border:0;background:transparent;text-align:center;font:700 17px var(--sans);color:var(--ink);-moz-appearance:textfield}
+.party input::-webkit-inner-spin-button,.party input::-webkit-outer-spin-button{-webkit-appearance:none}
+.err{color:var(--alert);font-size:14px;font-weight:600;margin:14px 0 0}
+
+/* success */
+.done{text-align:center}
+.done .plate.ok{width:150px;height:150px;margin:6px auto 22px}
+.done .plate.ok svg{position:relative;z-index:1}
+.backdrop.open .plate.ok path{animation:draw .7s .15s var(--ease) both}
+@keyframes draw{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+.done p{color:var(--ink-2);margin:10px auto 0;max-width:32ch}
+.receipt{margin-top:22px;text-align:left;border-top:1px solid var(--mist)}
+.receipt .r{display:flex;justify-content:space-between;gap:14px;padding:11px 2px;border-bottom:1px solid var(--mist);font-size:14.5px}
+.receipt .r b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.receipt .r.meta{color:var(--ink-3);font-size:13px;font-weight:600}
+
+@media (min-width:640px){
+  .grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:72px 18px}
+  .plate{width:140px;height:140px;margin-top:-64px}
+  .fav{top:62px}
+  .dish{padding:0 18px 18px}
+  .dish h3{font-size:23px}
+}
+@media (min-width:980px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:700px){
+  .backdrop{align-items:center;padding:24px}
+  .sheet{border-radius:34px;transform:translateY(24px) scale(.98);opacity:0;transition:transform .3s var(--ease),opacity .3s}
+  .backdrop.open .sheet{opacity:1;transform:none}
+  .plate-sheet{margin-top:140px}
+  .sheet-scroll{max-height:86vh;padding:32px}
+  .plate-sheet .sheet-scroll{max-height:calc(86vh - 140px);padding-top:134px}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+</style>
 </head>
-<body class="text-stone-900 font-sans pb-12 min-h-screen relative bg-[#FBF8F3]">
+<body>
+<div id="demo-note" class="demo-note hidden" data-i18n="demo">Демо меню — поръчките не се изпращат.</div>
 
-    <!-- ФОН НА МЕНЮТО: топъл светъл градиент по подразбиране (CSS), или снимка от админ панела -->
-    <div id="bg-photo" class="fixed inset-0 -z-20 bg-cover bg-center bg-gradient-to-b from-amber-50 via-[#FBF8F3] to-orange-50"></div>
-    <!-- мек акцент, наподобяващ топла точка светлина -->
-    <div id="bg-sun" class="fixed top-10 right-10 w-56 h-56 rounded-full bg-amber-200/40 blur-3xl -z-20"></div>
-    <div id="bg-overlay" class="fixed inset-0 -z-10 hidden bg-gradient-to-b from-white/85 via-white/60 to-white/85"></div>
-
-    <!-- ХЕДЪР: кинематографичен "hero" момент, вместо плосък банер -->
-    <header class="relative text-center pt-14 pb-10 px-4">
-        <p class="text-[10px] uppercase tracking-[4px] font-semibold text-amber-700/80">Дигитално меню</p>
-        <h1 class="font-display text-4xl font-semibold tracking-tight truncate mt-3 text-stone-900" id="restaurant-title">Зареждане...</h1>
-        <div class="w-12 h-px bg-amber-600/60 mx-auto mt-5"></div>
-    </header>
-
-    <!-- ТЪРСАЧКА + ЕЗИК -->
-    <div class="max-w-md mx-auto px-4 mt-2 relative z-10 flex gap-2">
-        <div class="relative flex-1">
-            <input type="text" id="search-input" placeholder="Търси артикул..."
-                class="w-full bg-white border border-stone-200 text-stone-900 placeholder-stone-400 rounded-full pl-10 pr-4 py-2.5 text-sm shadow-sm focus:outline-none focus:border-amber-500 transition-colors">
-            <svg class="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/>
-            </svg>
-        </div>
-        <select id="language-select" class="hidden bg-white border border-stone-200 text-stone-900 rounded-full px-3 text-sm shadow-sm focus:outline-none focus:border-amber-500">
-            <option value="bg">BG</option>
-        </select>
-    </div>
-
-    <!-- НАВИГАЦИЯ С КАТЕГОРИИ: контурни "pill" табове -->
-    <div class="sticky top-0 bg-[#FBF8F3]/90 backdrop-blur-md z-10 py-4 mt-4 border-b border-stone-200">
-        <div id="categories-nav" class="flex gap-2 overflow-x-auto px-4 no-scrollbar"></div>
-    </div>
-
-    <!-- СЪДЪРЖАНИЕ -->
-    <main class="max-w-md mx-auto px-4 mt-4 space-y-8 relative z-10" id="menu-container">
-        <div class="text-center py-12 text-stone-400 text-sm">Зареждане на менюто от облака...</div>
-    </main>
-
-    <!-- АВТОРСКИ ПОДПИС -->
-    <footer class="mt-16 mb-8 relative z-10">
-        <div class="text-center font-sans text-[0.65rem] uppercase tracking-[1px] text-stone-400 border-t border-stone-200 pt-6 mx-8">
-            <p>© 2026 <strong>Радослав Чакъров</strong> | Дигитални решения</p>
-        </div>
-    </footer>
-
-    <!-- МОДАЛ ЗА ДЕТАЙЛИ НА АРТИКУЛ -->
-    <div id="item-modal" class="hidden fixed inset-0 bg-black/40 z-40 flex items-end sm:items-center justify-center">
-        <div class="bg-white text-stone-900 w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-y-auto border border-stone-200 shadow-xl">
-            <div class="relative">
-                <button id="item-modal-close" class="absolute top-3 right-3 bg-white/90 rounded-full w-8 h-8 flex items-center justify-center text-stone-600 shadow cursor-pointer z-10">✕</button>
-                <img id="item-modal-img" src="" alt="" class="w-full h-64 object-cover hidden">
-            </div>
-            <div class="p-5">
-                <h2 id="item-modal-name" class="font-display text-xl font-semibold text-stone-900"></h2>
-                <p id="item-modal-desc" class="text-sm text-stone-500 mt-2 leading-relaxed"></p>
-                <p id="item-modal-price" class="text-amber-600 font-bold text-lg mt-3"></p>
-                <button id="item-modal-add-btn" class="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-sm transition cursor-pointer">
-                    ➕ Добави в поръчката
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- ПЛАВАЩ БУТОН ЗА КОЛИЧКАТА -->
-    <button id="cart-fab" class="hidden fixed bottom-5 right-5 z-30 bg-amber-600 hover:bg-amber-700 text-white rounded-full shadow-lg shadow-amber-900/20 px-5 py-3.5 flex items-center gap-2 font-bold text-sm cursor-pointer">
-        🛒 <span id="cart-fab-count">0</span>
-        <span id="cart-fab-total" class="font-semibold">· 0.00 €</span>
+<header>
+  <div class="wrap topline">
+    <span id="table-chip" class="table-chip hidden"><i id="table-chip-num"></i><span data-i18n="table">Маса</span></span>
+    <span class="spacer"></span>
+    <select id="language-select" class="lang hidden" aria-label="Език / Language"></select>
+  </div>
+  <div class="wrap stage">
+    <svg class="rings" viewBox="0 0 640 640" fill="none" stroke="currentColor" aria-hidden="true">
+      <circle cx="320" cy="320" r="318" stroke-width="1"/><circle cx="320" cy="320" r="262" stroke-width="1"/>
+      <circle cx="320" cy="320" r="252" stroke-width="1" stroke-dasharray="2 7"/><circle cx="320" cy="320" r="196" stroke-width="1"/>
+    </svg>
+    <div id="bg-photo-wrap" class="medallion hidden"><div id="bg-photo"></div></div>
+    <h1 id="restaurant-title" class="title"><span class="sk sk-title"></span></h1>
+    <p class="hero-sub" data-i18n="heroSub">Избери спокойно. Поръчката идва направо на масата ти.</p>
+    <button id="reservation-fab" class="res-link" type="button">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+      <span data-i18n="reserve">Резервирай маса</span>
     </button>
+    <label class="search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+      <input id="search-input" type="search" autocomplete="off" enterkeyhint="search" data-i18n-ph="search" placeholder="Какво ти се хапва?" aria-label="Търсене">
+      <button id="search-clear" class="search-clear hidden" type="button" aria-label="Изчисти търсенето">×</button>
+    </label>
+  </div>
+</header>
 
-    <!-- МОДАЛ НА КОЛИЧКАТА / ПОРЪЧКА -->
-    <div id="cart-modal" class="hidden fixed inset-0 bg-black/40 z-40 flex items-end sm:items-center justify-center">
-        <div class="bg-white text-stone-900 w-full sm:max-w-md sm:rounded-2xl rounded-t-2xl max-h-[90vh] flex flex-col border border-stone-200 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b border-stone-100">
-                <h2 class="font-display text-lg font-semibold text-stone-900">🛒 Твоята поръчка</h2>
-                <button id="cart-modal-close" class="bg-stone-100 rounded-full w-8 h-8 flex items-center justify-center text-stone-600 cursor-pointer">✕</button>
-            </div>
+<div id="cats-bar" class="tabs-bar">
+  <nav id="categories-nav" class="tabs" aria-label="Категории"></nav>
+</div>
 
-            <div id="cart-items-list" class="flex-1 overflow-y-auto p-4 space-y-3">
-                <!-- Динамични редове -->
-            </div>
+<main class="wrap">
+  <div id="menu-container" aria-live="polite"></div>
+  <footer class="foot">© 2026 <b>Радослав Чакъров</b> | Дигитални решения</footer>
+</main>
 
-            <div class="p-4 border-t border-stone-100 space-y-3">
-                <div class="flex justify-between items-center font-bold text-stone-900">
-                    <span>Общо:</span>
-                    <span id="cart-total" class="text-amber-600 text-lg">0.00 €</span>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Номер на маса</label>
-                    <input type="number" id="table-number-input" min="1" placeholder="напр. 7"
-                        class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm font-bold focus:outline-none focus:border-amber-500">
-                </div>
-                <button id="submit-order-btn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl text-sm transition cursor-pointer">
-                    Изпрати поръчката
-                </button>
-                <p id="order-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
-            </div>
-        </div>
-    </div>
+<button id="cart-fab" type="button" class="pill hidden" aria-label="Виж поръчката">
+  <span id="cart-fab-count" class="pill-count">0</span>
+  <span class="pill-label" data-i18n="viewOrder">Виж поръчката</span>
+  <span id="cart-fab-total" class="pill-total">0.00 €</span>
+</button>
 
-    <!-- ПОТВЪРЖДЕНИЕ НА ПОРЪЧКАТА -->
-    <div id="order-success-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
-        <div class="bg-white text-stone-900 border border-stone-200 shadow-xl rounded-2xl p-6 max-w-xs w-full text-center space-y-3">
-            <div class="text-4xl">✅</div>
-            <h2 class="font-display text-lg font-semibold text-stone-900">Поръчката е приета!</h2>
-            <p class="text-sm text-stone-500">Персоналът вече я вижда и ще я подготви.</p>
-            <button id="order-success-close" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer">
-                Готово
-            </button>
-        </div>
-    </div>
-
-    <!-- ПЛАВАЩ БУТОН ЗА РЕЗЕРВАЦИЯ -->
-    <button id="reservation-fab" class="fixed bottom-5 left-5 z-30 bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 rounded-full shadow-lg px-5 py-3.5 flex items-center gap-2 font-bold text-sm cursor-pointer">
-        📅 Резервация
+<!-- Item -->
+<div id="item-modal" class="backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="item-modal-name">
+  <div class="sheet plate-sheet" tabindex="-1">
+    <div class="plate hero" id="item-plate"><img id="item-modal-img" class="hidden" alt=""><span id="item-plate-mark" class="plate-mark" aria-hidden="true"></span></div>
+    <button id="item-modal-close" class="x corner" type="button" aria-label="Затвори">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
     </button>
-
-    <!-- МОДАЛ ЗА РЕЗЕРВАЦИЯ -->
-    <div id="reservation-modal" class="hidden fixed inset-0 bg-black/40 z-40 flex items-end sm:items-center justify-center">
-        <div class="bg-white text-stone-900 w-full sm:max-w-sm sm:rounded-2xl rounded-t-2xl max-h-[90vh] overflow-y-auto border border-stone-200 shadow-xl">
-            <div class="flex items-center justify-between p-4 border-b border-stone-100">
-                <h2 class="font-display text-lg font-semibold text-stone-900">📅 Резервация на маса</h2>
-                <button id="reservation-modal-close" class="bg-stone-100 rounded-full w-8 h-8 flex items-center justify-center text-stone-600 cursor-pointer">✕</button>
-            </div>
-            <div class="p-4 space-y-3">
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Име</label>
-                    <input type="text" id="reservation-name" placeholder="Твоето име" class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Телефон</label>
-                    <input type="tel" id="reservation-phone" placeholder="08xxxxxxxx" class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Дата</label>
-                        <input type="date" id="reservation-date" class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Час</label>
-                        <input type="time" id="reservation-time" class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Брой хора</label>
-                    <input type="number" id="reservation-party-size" min="1" value="2" class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-stone-500 uppercase mb-1">Бележка (незадължително)</label>
-                    <input type="text" id="reservation-notes" placeholder="напр. маса до прозореца" class="w-full bg-stone-50 border border-stone-200 text-stone-900 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <p id="reservation-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
-                <button id="submit-reservation-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl text-sm transition cursor-pointer">
-                    Изпрати заявка за резервация
-                </button>
-            </div>
+    <div class="sheet-scroll">
+      <h2 id="item-modal-name"></h2>
+      <p id="item-modal-desc" class="item-desc"></p>
+      <div class="item-price"><span id="item-modal-price"></span><span id="item-modal-tags"></span></div>
+      <div class="item-foot">
+        <div class="stepper" id="item-qty">
+          <button type="button" data-item-delta="-1" aria-label="По-малко"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+          <span id="item-qty-val">1</span>
+          <button type="button" data-item-delta="1" aria-label="Повече"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
         </div>
+        <button id="item-modal-add-btn" class="btn-main split" type="button"><span data-i18n="addShort">Добави</span><span id="item-modal-sum" class="sum"></span></button>
+      </div>
     </div>
+  </div>
+</div>
 
-    <!-- ПОТВЪРЖДЕНИЕ НА РЕЗЕРВАЦИЯТА -->
-    <div id="reservation-success-modal" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
-        <div class="bg-white text-stone-900 border border-stone-200 shadow-xl rounded-2xl p-6 max-w-xs w-full text-center space-y-3">
-            <div class="text-4xl">📅</div>
-            <h2 class="font-display text-lg font-semibold text-stone-900">Заявката е изпратена!</h2>
-            <p class="text-sm text-stone-500">Заведението ще потвърди резервацията ти по телефона.</p>
-            <button id="reservation-success-close" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm cursor-pointer">
-                Готово
-            </button>
+<!-- Cart -->
+<div id="cart-modal" class="backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="cart-title">
+  <div class="sheet" tabindex="-1">
+    <div class="sheet-scroll">
+      <div class="sheet-head">
+        <h2 id="cart-title" data-i18n="yourOrder">Поръчката ти</h2>
+        <button id="cart-modal-close" class="x" type="button" aria-label="Затвори"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="order-meta"><span id="cart-meta-table"></span><span id="cart-meta-time"></span></div>
+      <div id="cart-items-list"></div>
+      <div class="total"><span data-i18n="total">Общо</span><b id="cart-total">0.00 €</b></div>
+      <div class="field" id="table-field">
+        <label for="table-number-input" data-i18n="tableLabel">Номер на маса</label>
+        <input type="text" inputmode="numeric" id="table-number-input" maxlength="6" placeholder="напр. 7" autocomplete="off">
+      </div>
+      <p id="order-error" class="err hidden" role="alert"></p>
+      <button id="submit-order-btn" class="btn-main" type="button" data-i18n="send">Изпрати поръчката</button>
+    </div>
+  </div>
+</div>
+
+<!-- Order success -->
+<div id="order-success-modal" class="backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="order-success-title">
+  <div class="sheet" tabindex="-1">
+    <div class="sheet-scroll done">
+      <div class="plate ok"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1E3CB4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-dasharray="40"/></svg></div>
+      <h2 id="order-success-title" data-i18n="accepted">Поръчката е приета!</h2>
+      <p data-i18n="acceptedSub">Персоналът вече я вижда и ще я подготви.</p>
+      <div id="success-lines" class="receipt"></div>
+      <button id="order-success-close" class="btn-main" type="button" data-i18n="done">Готово</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reservation -->
+<div id="reservation-modal" class="backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="reservation-title">
+  <div class="sheet" tabindex="-1">
+    <div class="sheet-scroll">
+      <div class="sheet-head">
+        <h2 id="reservation-title" data-i18n="resTitle">Резервация на маса</h2>
+        <button id="reservation-modal-close" class="x" type="button" aria-label="Затвори"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="field"><label for="reservation-name" data-i18n="rName">Име</label><input id="reservation-name" type="text" autocomplete="name"></div>
+      <div class="field"><label for="reservation-phone" data-i18n="rPhone">Телефон</label><input id="reservation-phone" type="tel" autocomplete="tel" placeholder="08X XXX XXXX"></div>
+      <div class="field">
+        <label for="reservation-date" data-i18n="rDate">Дата</label>
+        <input id="reservation-date" type="date">
+        <div class="quick" id="date-quick"><button type="button" data-day="0" data-i18n="today">Днес</button><button type="button" data-day="1" data-i18n="tomorrow">Утре</button></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label for="reservation-time" data-i18n="rTime">Час</label><input id="reservation-time" type="time" step="900"></div>
+        <div class="field">
+          <span class="field-label" data-i18n="rParty">Брой хора</span>
+          <div class="party">
+            <button type="button" data-party="-1" aria-label="По-малко хора">−</button>
+            <input id="reservation-party-size" type="number" min="1" max="50" value="2" aria-label="Брой хора">
+            <button type="button" data-party="1" aria-label="Повече хора">+</button>
+          </div>
         </div>
+      </div>
+      <div class="field"><label for="reservation-notes" data-i18n="rNotes">Бележка (незадължително)</label><textarea id="reservation-notes"></textarea></div>
+      <p id="reservation-error" class="err hidden" role="alert"></p>
+      <button id="submit-reservation-btn" class="btn-main" type="button" data-i18n="rSend">Изпрати заявка за резервация</button>
     </div>
+  </div>
+</div>
 
-    <!-- Основен скрипт -->
-    <script src="app.js"></script>
+<!-- Reservation success -->
+<div id="reservation-success-modal" class="backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="res-success-title">
+  <div class="sheet" tabindex="-1">
+    <div class="sheet-scroll done">
+      <div class="plate ok"><svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#1E3CB4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5" stroke-dasharray="40"/></svg></div>
+      <h2 id="res-success-title" data-i18n="rDone">Заявката е изпратена!</h2>
+      <p data-i18n="rDoneSub">Заведението ще потвърди резервацията ти по телефона.</p>
+      <button id="reservation-success-close" class="btn-main" type="button" data-i18n="done">Готово</button>
+    </div>
+  </div>
+</div>
+<script src="app.js"></script>
 </body>
 </html>
