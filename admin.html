@@ -1,513 +1,755 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Админ Панел - Дигитално Меню</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F3F4F7">
+<meta name="robots" content="noindex, nofollow">
+<title>Меню Мениджър</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Tailwind остава само заради редовете, които admin.js генерира; палитрата му е пренастроена по-долу -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style type="text/tailwindcss">
+@theme {
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-gray-50:#F6F7F9; --color-gray-100:#EEF0F4; --color-gray-200:#E3E7EF; --color-gray-300:#C9CFDB;
+  --color-gray-400:#8C93A6; --color-gray-500:#6B7287; --color-gray-600:#596178; --color-gray-700:#3C4459;
+  --color-gray-800:#252C44; --color-gray-900:#121833; --color-gray-950:#0B1024;
+  --color-slate-50:#F6F7F9; --color-slate-100:#EEF0F4; --color-slate-200:#E3E7EF; --color-slate-300:#C9CFDB;
+  --color-slate-400:#8C93A6; --color-slate-500:#6B7287; --color-slate-600:#3C4459; --color-slate-700:#252C44;
+  --color-slate-800:#121833; --color-slate-900:#0B1024;
+  --color-blue-600:#1E3CB4;
+  --color-amber-50:#F1F4FC; --color-amber-100:#E6EBFA; --color-amber-600:#1E3CB4; --color-amber-700:#162C8A;
+  --color-green-100:#E3F2E9; --color-green-600:#1F7A4D; --color-green-700:#17613C;
+  --color-red-100:#FBE9E7; --color-red-500:#C8372A; --color-red-600:#B42318; --color-red-700:#8F1C13;
+}
+</style>
+<style>
+:root{
+  --porcelain:#F3F4F7; --white:#FFFFFF; --mist:#EEF0F4; --rim:#E3E7EF;
+  --ink:#121833; --ink-2:#596178; --ink-3:#8C93A6;
+  --glaze:#1E3CB4; --glaze-deep:#162C8A; --glaze-soft:#E6EBFA; --glaze-line:#CDD6F3;
+  --ok:#1F7A4D; --ok-soft:#E3F2E9; --alert:#B42318; --alert-soft:#FBE9E7;
+  --serif:"Cormorant Garamond",Georgia,serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --side:264px;
+  color-scheme:light;
+}
+/* Tailwind е в @layer — тези правила са извън слой и печелят. `hidden` трябва винаги да скрива. */
+.hidden{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--porcelain);color:var(--ink);font:500 14.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+button{cursor:pointer}
+:focus-visible{outline:2.5px solid var(--glaze);outline-offset:2px;border-radius:10px}
+.serif{font-family:var(--serif)}
+
+/* ---------- Plate motif ---------- */
+.plate{position:relative;border-radius:50%;background:var(--white);display:grid;place-items:center;box-shadow:0 18px 30px -14px rgba(18,24,51,.4),0 0 0 1px var(--rim);flex:none}
+.plate::before{content:"";position:absolute;inset:12%;border-radius:50%;box-shadow:inset 0 0 0 1px var(--rim)}
+.plate b{position:relative;font-family:var(--serif);font-style:italic;font-weight:500;color:var(--glaze);line-height:1}
+
+/* ---------- Login ---------- */
+.login{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1.1fr 1fr}
+.login-art{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:44px 52px;background:var(--white);border-right:1px solid var(--rim)}
+.login-art .rings{position:absolute;right:-220px;bottom:-220px;width:760px;height:760px;color:var(--glaze-line);pointer-events:none}
+.login-art .big{width:300px;height:300px;position:absolute;right:120px;bottom:120px}
+.login-art .big b{font-size:150px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:15px;letter-spacing:.01em}
+.brand .plate{width:40px;height:40px;box-shadow:0 6px 12px -6px rgba(18,24,51,.35),0 0 0 1px var(--rim)}
+.brand .plate::before{inset:4px}
+.brand .plate b{font-size:22px}
+.login-art h1{position:relative;font-family:var(--serif);font-weight:500;font-size:clamp(44px,5vw,72px);line-height:.98;letter-spacing:-.015em;margin:0;max-width:9ch}
+.login-art h1 em{color:var(--glaze)}
+.login-art p{position:relative;color:var(--ink-2);max-width:34ch;margin:18px 0 0;font-size:15px}
+.login-art small{position:relative;color:var(--ink-3);font-size:12.5px}
+.login-form{display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.login-box{width:100%;max-width:380px}
+.login-box h2{font-family:var(--serif);font-weight:500;font-size:40px;line-height:1;margin:0}
+.login-box>p{color:var(--ink-2);margin:10px 0 28px}
+.login-box .btn{width:100%;height:54px;margin-top:22px;font-size:15px}
+.login-back{display:inline-flex;margin-top:22px;color:var(--ink-2);font-size:13.5px;font-weight:600;text-decoration:none}
+.login-back:hover{color:var(--glaze)}
+
+/* ---------- Fields ---------- */
+.fld{display:block;margin-top:14px}
+.fld>span,.fld-label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin:0 0 7px 2px}
+.hint{font-size:12px;color:var(--ink-3);margin:6px 0 0 2px;line-height:1.45}
+input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{width:100%;min-width:0;height:46px;border:0;border-radius:14px;background:var(--porcelain);padding:0 14px;font:500 14.5px var(--sans);color:var(--ink);box-shadow:inset 0 0 0 1px transparent;transition:box-shadow .15s,background .15s;outline:none}
+select{appearance:none;-webkit-appearance:none;padding-right:34px;background:var(--porcelain) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23596178' stroke-width='1.6'/%3E%3C/svg%3E") right 14px center no-repeat}
+textarea{height:90px;padding:12px 14px;resize:vertical}
+input:not([type=checkbox]):not([type=radio]):not([type=file]):focus,select:focus,textarea:focus{background:var(--white);box-shadow:inset 0 0 0 1.5px var(--glaze)}
+input::placeholder,textarea::placeholder{color:var(--ink-3);font-weight:400}
+.card input:not([type=checkbox]):not([type=radio]):not([type=file]),.card select{background-color:var(--porcelain)}
+input[type=checkbox]{accent-color:var(--glaze);width:18px;height:18px}
+.switch,.module-toggle-checkbox{appearance:none;-webkit-appearance:none;width:44px!important;height:26px!important;border-radius:999px;background:var(--rim);position:relative;cursor:pointer;flex:none;transition:background .2s;margin:0}
+.switch::after,.module-toggle-checkbox::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(18,24,51,.3);transition:transform .22s var(--ease)}
+.switch:checked,.module-toggle-checkbox:checked{background:var(--glaze)}
+.switch:checked::after,.module-toggle-checkbox:checked::after{transform:translateX(18px)}
+.drop{position:relative;display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 14px;border-radius:16px;border:1.5px dashed var(--glaze-line);background:var(--glaze-soft);color:var(--glaze-deep);font-weight:700;font-size:13.5px;cursor:pointer;transition:background .2s,border-color .2s}
+.drop:hover{border-color:var(--glaze);background:#DEE5F8}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.drop .ic{width:38px;height:38px;border-radius:12px;background:var(--white);display:grid;place-items:center;flex:none}
+.drop small{display:block;font-weight:500;color:var(--ink-2);font-size:12px}
+.preview{display:block;width:100%;max-height:200px;object-fit:cover;border-radius:16px;margin-top:10px}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:999px;font:700 14px var(--sans);white-space:nowrap;text-decoration:none;transition:background .18s,color .18s,box-shadow .18s}
+.btn-primary{background:var(--glaze);color:#fff}
+.btn-primary:hover{background:var(--glaze-deep)}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-dark:hover{background:var(--glaze)}
+.btn-ghost{background:var(--white);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rim)}
+.btn-ghost:hover{box-shadow:inset 0 0 0 1px var(--glaze-line);color:var(--glaze)}
+.btn-quiet{background:transparent;color:var(--ink-2)}
+.btn-quiet:hover{background:var(--mist);color:var(--ink)}
+.btn-danger{background:var(--alert-soft);color:var(--alert)}
+.btn-danger:hover{background:var(--alert);color:#fff}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.btn-row.end{justify-content:flex-end}
+
+/* ---------- App shell ---------- */
+.app{min-height:100vh;min-height:100dvh}
+.side{position:fixed;inset:0 auto 0 0;width:var(--side);z-index:40;display:flex;flex-direction:column;background:var(--white);border-right:1px solid var(--rim);padding:22px 16px 18px}
+.side .brand{padding:0 8px 4px}
+.side-venue{margin:14px 8px 18px;padding:14px;border-radius:18px;background:var(--porcelain)}
+.side-venue small{display:block;font-size:11.5px;font-weight:700;color:var(--ink-3);letter-spacing:.02em}
+.side-venue strong{display:block;font-family:var(--serif);font-weight:600;font-size:22px;line-height:1.1;margin-top:2px;overflow-wrap:anywhere}
+.nav{display:flex;flex-direction:column;gap:2px;overflow-y:auto;flex:1}
+.nav-label{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:16px 12px 6px}
+.nav button{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 12px;border:0;border-radius:14px;background:none;color:var(--ink-2);font:700 14px var(--sans);text-align:left;transition:background .15s,color .15s}
+.nav button svg{flex:none;opacity:.85}
+.nav button:hover{background:var(--porcelain);color:var(--ink)}
+.nav button[aria-current="page"]{background:var(--glaze-soft);color:var(--glaze-deep)}
+.side-foot{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--rim);padding-top:12px;margin-top:10px}
+.side-foot a,.side-foot button{display:flex;align-items:center;gap:12px;height:42px;padding:0 12px;border:0;border-radius:14px;background:none;color:var(--ink-2);font:600 13.5px var(--sans);text-decoration:none}
+.side-foot a:hover,.side-foot button:hover{background:var(--porcelain);color:var(--ink)}
+#logout-btn:hover{color:var(--alert);background:var(--alert-soft)}
+.scrim{position:fixed;inset:0;z-index:35;background:rgba(18,24,51,.35);opacity:0;pointer-events:none;transition:opacity .25s}
+.topbar{display:none}
+.main{margin-left:var(--side);padding:34px 40px 60px;max-width:calc(1200px + var(--side))}
+
+/* ---------- Views ---------- */
+.view{display:block;animation:viewIn .35s var(--ease)}
+.view.off{display:none}
+@keyframes viewIn{from{opacity:0;transform:translateY(6px)}}
+.view-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;flex-wrap:wrap;margin-bottom:26px}
+.view-head h1{font-family:var(--serif);font-weight:500;font-size:clamp(38px,4.4vw,54px);line-height:1;letter-spacing:-.015em;margin:0}
+.view-head p{color:var(--ink-2);margin:8px 0 0;max-width:56ch}
+.view-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.view-tools select{width:auto;background-color:var(--white);box-shadow:inset 0 0 0 1px var(--rim)}
+.pill-count{display:inline-flex;align-items:center;height:32px;padding:0 13px;border-radius:999px;background:var(--white);box-shadow:inset 0 0 0 1px var(--rim);font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.card{background:var(--white);border-radius:24px;padding:24px;box-shadow:0 1px 2px rgba(18,24,51,.04),0 0 0 1px rgba(227,231,239,.7)}
+.card+.card{margin-top:16px}
+.card h3,.card h4{font-family:var(--serif);font-weight:600;font-size:25px;line-height:1.1;margin:0}
+.card h4{font-size:21px}
+.card-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.card>p.lead{color:var(--ink-2);margin:6px 0 0}
+.split{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:18px;align-items:start}
+.split .sticky{position:sticky;top:24px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:0 14px}
+.span2{grid-column:span 2}
+.form-card{border:0}
+.form-card .card-head{margin-bottom:2px}
+.inline-card{background:var(--porcelain);border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:none}
+.inline-card input:not([type=checkbox]):not([type=file]),.inline-card select{background-color:var(--white)!important}
+.check-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:16px;padding:12px 14px;border-radius:14px;background:var(--porcelain);font-weight:700}
+
+/* ---------- Item drawer ---------- */
+.drawer-scrim{position:fixed;inset:0;z-index:55;background:rgba(18,24,51,.35);opacity:0;pointer-events:none;transition:opacity .25s}
+body.item-open .drawer-scrim{opacity:1;pointer-events:auto}
+.drawer-panel{position:fixed;top:0;right:0;bottom:0;width:min(460px,100%);z-index:60;display:flex;flex-direction:column;background:var(--white);box-shadow:-30px 0 60px -30px rgba(18,24,51,.5);transform:translateX(104%);transition:transform .38s var(--ease);visibility:hidden}
+body.item-open .drawer-panel{transform:none;visibility:visible}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:calc(24px + env(safe-area-inset-top)) 26px 6px}
+.drawer-head h3{font-family:var(--serif);font-weight:500;font-size:32px;line-height:1.05;margin:0}
+.drawer-body{flex:1;overflow:auto;overscroll-behavior:contain;padding:0 26px calc(26px + env(safe-area-inset-bottom))}
+.x-btn{width:42px;height:42px;flex:none;border:0;border-radius:50%;background:var(--porcelain);display:grid;place-items:center}
+.x-btn:hover{background:var(--mist)}
+body.item-open{overflow:hidden}
+
+/* ---------- KPIs ---------- */
+#stats-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
+.kpi{background:var(--white);border-radius:24px;padding:22px 22px 20px;box-shadow:0 1px 2px rgba(18,24,51,.04),0 0 0 1px rgba(227,231,239,.7);position:relative;overflow:hidden}
+.kpi p:first-child{font-size:12.5px;font-weight:700;color:var(--ink-2);margin:0}
+.kpi p:last-child{font-family:var(--serif);font-weight:600;font-size:clamp(38px,4vw,54px);line-height:1;margin:14px 0 0;font-variant-numeric:lining-nums tabular-nums;letter-spacing:-.01em}
+.kpi.hero{background:var(--ink);color:#fff;box-shadow:none}
+.kpi.hero p:first-child{color:#AEB5CB}
+.kpi.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:180px;height:180px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 22px rgba(255,255,255,.03)}
+
+/* ---------- Tables (включително редовете от admin.js) ---------- */
+.table-wrap{overflow-x:auto;margin:14px -24px -24px;padding:0 24px 12px}
+.table-wrap table{width:100%;border-collapse:collapse;font-size:14px}
+.table-wrap thead th{position:sticky;top:0;background:var(--white);text-align:left;font-size:11.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:12px 12px;border-bottom:1px solid var(--rim);white-space:nowrap}
+.table-wrap thead th.r{text-align:right}.table-wrap thead th.c{text-align:center}
+.table-wrap tbody td{padding:14px 12px!important;border-bottom:1px solid var(--mist);vertical-align:middle}
+.table-wrap tbody td.text-right{white-space:nowrap}
+.table-wrap tbody tr{border:0!important;transition:background .12s}
+.table-wrap tbody tr:hover{background:#FAFBFC}
+.table-wrap tbody tr:last-child td{border-bottom:0}
+.table-wrap td img{border-radius:12px!important;box-shadow:0 0 0 1px var(--rim)}
+.table-wrap td button,.m-cards button{font-weight:700!important;font-size:13px!important;border-radius:999px;padding:6px 12px!important;margin:0!important;transition:background .15s}
+.table-wrap td button.text-blue-600,.m-cards button.text-blue-600{background:var(--glaze-soft)}
+.table-wrap td button.text-red-600,.m-cards button.text-red-600{background:var(--alert-soft)}
+.table-wrap td button.text-green-600,.table-wrap td button.text-green-700{background:var(--ok-soft)}
+.table-wrap td button.text-green-600:hover{background:var(--ok);color:#fff}
+.table-wrap td button.text-blue-600:hover{background:var(--glaze);color:#fff}
+.table-wrap td button.text-red-600:hover{background:var(--alert);color:#fff}
+.table-wrap td .rounded-full.w-6,.m-cards .rounded-full.w-7{padding:0!important;width:30px!important;height:30px!important;background:var(--porcelain)}
+.empty{text-align:center;padding:34px 12px 10px;color:var(--ink-2);font-family:var(--serif);font-style:italic;font-size:21px}
+.m-cards{margin:14px -8px 0}
+.m-cards>div{border-radius:18px;padding:4px!important}
+.m-cards>div+div{border-top:1px solid var(--mist)}
+.only-mob{display:none}
+
+/* JS-генерирани контейнери */
+#module-toggle-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:16px}
+#module-toggle-list label{background:var(--porcelain)!important;border:0!important;border-radius:16px!important;padding:14px 16px!important;min-height:56px}
+#module-toggle-list label span{font-size:14px!important;font-weight:700!important;color:var(--ink)!important}
+#language-checkboxes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:18px}
+#language-checkboxes label{height:52px;background:var(--porcelain)!important;border:0!important;border-radius:16px!important;padding:0 16px!important;font-weight:700;font-size:14px!important;gap:10px!important;transition:background .15s,box-shadow .15s}
+#language-checkboxes label:has(input:checked){background:var(--glaze-soft)!important;box-shadow:inset 0 0 0 1.5px var(--glaze);color:var(--glaze-deep)}
+#receipt-lines{display:flex;flex-direction:column;gap:8px;margin:8px 0 10px}
+#receipt-lines>div{gap:8px!important}
+#receipt-lines input,#receipt-lines select{height:44px}
+#receipt-lines .receipt-line-qty{width:90px!important;flex:none}
+#receipt-lines .receipt-line-price{width:110px!important;flex:none}
+.remove-line-btn{width:40px;height:40px;border-radius:50%;background:var(--white)!important;flex:none}
+#cash-shift-status{background:var(--porcelain);border-radius:20px;padding:20px;margin-top:4px}
+#cash-shift-status .grid>div{border:0!important;border-radius:14px!important;padding:14px!important}
+#cash-shift-status .grid>div p:last-child{font-family:var(--serif);font-size:28px;font-weight:600;line-height:1.1;margin-top:4px}
+#cash-shift-status input{background:var(--white)!important;height:46px}
+#cash-shift-status button{height:46px;border-radius:999px!important;padding:0 20px!important;font-size:13.5px!important}
+.seg{display:inline-flex;gap:4px;padding:5px;border-radius:999px;background:var(--white);box-shadow:inset 0 0 0 1px var(--rim);margin-bottom:16px}
+.seg .shifts-tab-btn{height:38px;padding:0 18px;border:0;border-radius:999px;background:transparent;font:700 13.5px var(--sans);color:var(--ink-2)}
+.seg .shifts-tab-btn.bg-slate-100{background:var(--ink)!important;color:#fff!important}
+.status-line{font-size:13.5px;font-weight:600;margin:12px 0 0}
+.err{color:var(--alert);font-size:13.5px;font-weight:600;margin:10px 0 0}
+.ok-text{color:var(--ok)}
+
+/* ---------- Toasts ---------- */
+.toasts{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(460px,calc(100% - 24px))}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:18px;background:var(--ink);color:#fff;font-weight:600;font-size:14px;box-shadow:0 18px 40px -12px rgba(18,24,51,.55);animation:toastIn .35s var(--ease)}
+.toast i{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.12);font-style:normal}
+.toast.err-t{background:#fff;color:var(--alert);box-shadow:0 18px 40px -12px rgba(18,24,51,.35),inset 0 0 0 1px #F3C9C4}
+.toast.err-t i{background:var(--alert-soft)}
+.toast.out{opacity:0;transform:translateY(8px);transition:all .25s}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(.98)}}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1180px){.split{grid-template-columns:1fr}.split .sticky{position:static}.split .form-card{order:-1}}
+@media (max-width:960px){
+  .login{grid-template-columns:1fr}
+  .login-art{min-height:auto;padding:28px 24px 34px;border-right:0;border-bottom:1px solid var(--rim)}
+  .login-art .big,.login-art .rings{display:none}
+  .login-art h1{font-size:42px;margin-top:40px}
+  .login-art small{display:none}
+  .side{transform:translateX(-102%);transition:transform .3s var(--ease);box-shadow:20px 0 50px -20px rgba(18,24,51,.35)}
+  body.drawer .side{transform:none}
+  body.drawer .scrim{opacity:1;pointer-events:auto}
+  .topbar{display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:30;padding:calc(10px + env(safe-area-inset-top)) 16px 10px;background:rgba(243,244,247,.9);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-bottom:1px solid var(--rim)}
+  .topbar .menu-btn{width:44px;height:44px;border:0;border-radius:14px;background:var(--white);box-shadow:inset 0 0 0 1px var(--rim);display:grid;place-items:center}
+  .topbar strong{flex:1;font-family:var(--serif);font-size:22px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .main{margin-left:0;padding:22px 16px 60px}
+  .only-desk{display:none}
+  .only-mob{display:block}
+}
+@media (max-width:640px){
+  #stats-summary{grid-template-columns:1fr 1fr}
+  #stats-summary .kpi.hero{grid-column:span 2}
+  .grid2,.grid3{grid-template-columns:1fr}
+  .span2{grid-column:auto}
+  .card{padding:20px;border-radius:22px}
+  .table-wrap{margin:14px -20px -20px;padding:0 20px 10px}
+  .view-head{margin-bottom:18px}
+  #receipt-lines>div{flex-wrap:wrap}
+  #receipt-lines .receipt-line-item{flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
 </head>
-<body class="bg-gray-100 text-gray-950 font-sans min-h-screen flex flex-col">
+<body>
+<div class="toasts" id="toasts" aria-live="polite"></div>
 
-    <!-- ХЕДЪР -->
-    <header class="bg-slate-800 text-white py-4 px-6 shadow-md flex justify-between items-center">
-        <h1 class="text-lg font-black tracking-wide">⚙️ Меню Мениджър</h1>
-        <div class="flex items-center gap-2">
-            <!-- БУТОН ЗА ВРЪЩАНЕ КЪМ МЕНЮТО -->
-            <a href="index.html" class="bg-slate-600 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition decoration-none">
-                👁️ Към менюто
-            </a>
-            <!-- БУТОН КЪМ ТАБЛОТО С ПОРЪЧКИ -->
-            <a href="orders.html" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition decoration-none">
-                🧾 Поръчки
-            </a>
-            <button id="logout-btn" class="hidden bg-red-600 hover:bg-red-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
-                Изход
-            </button>
+<!-- ================= ВХОД ================= -->
+<section id="login-card" class="login">
+  <div class="login-art">
+    <svg class="rings" viewBox="0 0 760 760" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="380" cy="380" r="378"/><circle cx="380" cy="380" r="300"/><circle cx="380" cy="380" r="290" stroke-dasharray="2 8"/><circle cx="380" cy="380" r="220"/></svg>
+    <div class="plate big" aria-hidden="true"><b>М</b></div>
+    <div class="brand"><span class="plate"><b>М</b></span>Меню Мениджър</div>
+    <div>
+      <h1>Заведението ти, <em>подредено.</em></h1>
+      <p>Меню, наличности, резервации, екип и каса на едно място. Промените се виждат в менюто на гостите веднага.</p>
+    </div>
+    <small>© 2026 Радослав Чакъров | Дигитални решения</small>
+  </div>
+  <div class="login-form">
+    <div class="login-box">
+      <h2>Добре дошъл</h2>
+      <p>Влез с данните за управление на заведението.</p>
+      <label class="fld"><span>Имейл</span><input type="email" id="login-email" autocomplete="username" placeholder="ime@zavedenie.bg"></label>
+      <label class="fld"><span>Парола</span><input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••"></label>
+      <button id="login-btn" class="btn btn-primary" type="button">Влез в таблото</button>
+      <p id="login-error" class="err hidden"></p>
+      <a href="index.html" class="login-back">← Обратно към менюто</a>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ТАБЛО ================= -->
+<div id="admin-dashboard" class="app hidden">
+  <div class="scrim" id="scrim"></div>
+
+  <aside class="side" id="side" aria-label="Навигация">
+    <div class="brand"><span class="plate"><b>М</b></span>Меню Мениджър</div>
+    <div class="side-venue"><small>Заведение</small><strong id="venue-name">—</strong></div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">Ежедневно</div>
+      <button type="button" data-go="menu"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/></svg>Меню</button>
+      <button type="button" data-go="stats" data-module="stats"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Продажби</button>
+      <button type="button" data-go="reservations" data-module="reservations"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Резервации</button>
+      <div class="nav-label">Управление</div>
+      <button type="button" data-go="inventory" data-module="inventory"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8l9-5 9 5v8l-9 5-9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/></svg>Склад</button>
+      <button type="button" data-go="shifts" data-module="shifts"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.5 3.5 0 0 1 0 6.4M18.5 14.8c1.6.8 2.6 2.5 3 5.2"/></svg>Екип и каса</button>
+      <div class="nav-label">Заведение</div>
+      <button type="button" data-go="languages" data-module="languages"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.6 3.7 5.6 3.7 9s-1.2 6.4-3.7 9c-2.5-2.6-3.7-5.6-3.7-9S9.5 5.6 12 3z"/></svg>Езици</button>
+      <button type="button" data-go="settings"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Настройки</button>
+    </nav>
+    <div class="side-foot">
+      <a href="index.html" target="_blank" rel="noopener"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>Виж менюто</a>
+      <a href="orders.html"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg>Поръчки на живо</a>
+      <button id="logout-btn" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>Изход</button>
+    </div>
+  </aside>
+
+  <div class="topbar">
+    <button class="menu-btn" id="menu-btn" type="button" aria-label="Отвори навигацията"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg></button>
+    <strong id="topbar-title">Меню</strong>
+  </div>
+
+  <main class="main">
+
+    <!-- ===== МЕНЮ ===== -->
+    <section class="view" data-view="menu">
+      <div class="view-head">
+        <div><h1>Меню</h1><p>Артикули, цени и наличности. Всяка промяна е видима за гостите веднага.</p></div>
+        <div class="view-tools"><span id="items-count" class="pill-count">0 позиции</span>
+          <button type="button" class="btn btn-dark" id="new-item-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Нов артикул</button></div>
+      </div>
+      <div class="card">
+          <div class="card-head"><h3>Артикули</h3></div>
+          <div class="table-wrap only-desk">
+            <table>
+              <thead><tr><th>Снимка</th><th>Артикул</th><th>Категория</th><th>Цена</th><th class="c">Наличност</th><th class="c">Статус</th><th class="r">Действия</th></tr></thead>
+              <tbody id="admin-items-table"></tbody>
+            </table>
+          </div>
+          <div id="admin-items-cards" class="m-cards only-mob"></div>
         </div>
-    </header>
 
-    <main class="flex-1 max-w-4xl w-full mx-auto p-4 flex flex-col justify-center">
-        
-        <!-- ФОРМА ЗА ВХОД -->
-        <div id="login-card" class="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full mx-auto space-y-4">
-            <div class="text-center">
-                <h2 class="text-xl font-extrabold text-slate-800">Вход в системата</h2>
-                <p class="text-xs text-gray-500 mt-1">Въведете вашите админ данни</p>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Имейл</label>
-                    <input type="email" id="login-email" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="admin@beachbar.com">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Парола</label>
-                    <input type="password" id="login-password" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="••••••••">
-                </div>
-                <button id="login-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer">
-                    Влез в таблото
-                </button>
-                <p id="login-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
-            </div>
+      <div class="drawer-scrim" id="item-scrim"></div>
+      <aside class="drawer-panel" id="item-drawer" aria-labelledby="form-title" role="dialog">
+        <div class="drawer-head">
+          <h3 id="form-title">Добавяне на нов артикул</h3>
+          <button type="button" class="x-btn" id="item-drawer-close" aria-label="Затвори"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </div>
-
-        <!-- АДМИН ТАБЛО -->
-        <div id="admin-dashboard" class="hidden space-y-6 w-full">
-            
-            <!-- НАСТРОЙКА НА ИМЕ НА ЗАВЕДЕНИЕ -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-3 items-center justify-between">
-                <div class="w-full sm:w-auto">
-                    <label class="block text-xs font-black text-slate-700 uppercase tracking-wider mb-1">Име на заведението:</label>
-                    <input type="text" id="restaurant-name-input" placeholder="напр. Beach Bar Nirvana" class="w-full sm:w-80 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm font-bold focus:outline-slate-500">
-                </div>
-                <button id="save-res-name-btn" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer">
-                    💾 Запази името
-                </button>
+        <div class="drawer-body">
+          <form id="add-item-form">
+            <input type="hidden" id="item-id">
+            <label class="fld"><span>Име</span><input type="text" id="item-name" placeholder="напр. Шопска салата" required></label>
+            <div class="grid2">
+              <label class="fld"><span>Категория</span><input type="text" id="item-category" placeholder="напр. Салати" required></label>
+              <label class="fld"><span>Цена, €</span><input type="number" step="0.01" id="item-price" placeholder="0.00" required></label>
             </div>
-
-            <!-- НАСТРОЙКА НА ФОН НА МЕНЮТО -->
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-gray-200">
-                <label class="block text-xs font-black text-slate-700 uppercase tracking-wider mb-2">Фон на менюто (незадължително):</label>
-                <div class="flex flex-col sm:flex-row gap-3 items-center">
-                    <input type="file" id="bg-image-file" accept="image/*" class="flex-1 w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-slate-500">
-                    <img id="bg-image-preview" src="" class="w-16 h-16 object-cover rounded-lg hidden">
-                    <button id="save-bg-btn" class="w-full sm:w-auto bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition cursor-pointer whitespace-nowrap">
-                        🖼️ Запази фона
-                    </button>
-                    <button id="remove-bg-btn" class="w-full sm:w-auto text-red-500 text-xs font-bold px-2 cursor-pointer whitespace-nowrap">
-                        Премахни
-                    </button>
-                </div>
-                <p class="text-[11px] text-gray-400 mt-2">Ако не качиш нищо, менюто ползва морски пейзаж по подразбиране.</p>
+            <label class="fld"><span>Описание</span><input type="text" id="item-desc" placeholder="Съставки, грамаж"></label>
+            <label class="fld"><span>Наличност, бр.</span><input type="number" step="1" min="0" id="item-quantity" placeholder="∞"></label>
+            <p class="hint">Остави празно за неограничено количество.</p>
+            <div class="fld">
+              <span class="fld-label">Снимка</span>
+              <label class="drop">
+                <input type="file" id="item-image-file" accept="image/*">
+                <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></span>
+                <span><span data-file-label>Качи снимка</span><small>Най-добре квадратна, снимана отгоре</small></span>
+              </label>
+              <input type="hidden" id="item-image">
+              <img id="item-image-preview" src="" alt="" class="preview hidden">
             </div>
-
-            <!-- ============================================================ -->
-            <!-- НАСТРОЙКИ НА МОДУЛИТЕ (нова секция) -->
-            <!-- ============================================================ -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">🧩 Настройки на модулите</h3>
-                </div>
-                <div class="p-4 space-y-2">
-                    <p class="text-xs text-gray-500 mb-2">Изключи модул, ако не го ползваш — секцията ще изчезне от таблото ти.</p>
-                    <div id="module-toggle-list" class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <!-- Динамично попълнено от JS -->
-                    </div>
-                    <button id="save-modules-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">💾 Запази настройките</button>
-                </div>
-            </div>
-            <!-- ============================================================ -->
-            <!-- КРАЙ НА НАСТРОЙКИ НА МОДУЛИТЕ -->
-            <!-- ============================================================ -->
-            
-            <!-- ФОРМА ЗА ДОБАВЯНЕ / РЕДАКТИРАНЕ -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
-                <h3 id="form-title" class="text-sm font-black text-slate-800 uppercase tracking-wider mb-4 border-l-3 border-amber-600 pl-2">Добавяне на нов артикул</h3>
-                <form id="add-item-form" class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                    <input type="hidden" id="item-id">
-                    
-                    <input type="text" id="item-name" placeholder="Име (напр. Фрапе)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
-                    <input type="text" id="item-category" placeholder="Категория (напр. Напитки)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
-                    <input type="number" step="0.01" id="item-price" placeholder="Цена в € (напр. 4.50)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" required>
-                    <input type="text" id="item-desc" placeholder="Описание (съставки, грамаж)" class="md:col-span-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-
-                    <div>
-                        <input type="number" step="1" min="0" id="item-quantity" placeholder="Наличност (бр.)" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        <p class="text-[10px] text-gray-400 mt-1 pl-1">Остави празно = неограничено количество</p>
-                    </div>
-
-                    <div class="md:col-span-2 flex items-center gap-3">
-                        <input type="file" id="item-image-file" accept="image/*" class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-slate-500">
-                        <input type="hidden" id="item-image">
-                        <img id="item-image-preview" src="" class="w-10 h-10 object-cover rounded-lg hidden">
-                    </div>
-
-                    <div class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2">
-                        <input type="checkbox" id="item-available" checked class="w-4 h-4">
-                        <label for="item-available" class="text-sm font-bold text-slate-700">Наличен</label>
-                    </div>
-
-                    <button type="submit" id="submit-form-btn" class="md:col-span-3 bg-green-600 hover:bg-green-700 text-white font-bold py-2 rounded-xl text-sm transition shadow-xs cursor-pointer">
-                        ➕ Добави към менюто
-                    </button>
-                </form>
-            </div>
-
-            <!-- СПИСЪК / ТАБЛИЦА -->
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100 flex justify-between items-center">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">Текущи артикули в менюто</h3>
-                    <span id="items-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 позиции</span>
-                </div>
-                <div class="overflow-x-auto hidden md:block">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                            <tr>
-                                <th class="p-3">Снимка</th>
-                                <th class="p-3">Артикул</th>
-                                <th class="p-3">Категория</th>
-                                <th class="p-3">Цена</th>
-                                <th class="p-3 text-center">Наличност</th>
-                                <th class="p-3 text-center">Статус</th>
-                                <th class="p-3 text-right">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody id="admin-items-table" class="divide-y divide-gray-100">
-                            <!-- Динамични редове -->
-                        </tbody>
-                    </table>
-                </div>
-                <div id="admin-items-cards" class="md:hidden divide-y divide-gray-100">
-                    <!-- Динамични карти за мобилен изглед -->
-                </div>
-            </div>
-
-            <!-- СТАТИСТИКА НА ПРОДАЖБИТЕ -->
-            <div id="module-section-stats" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📊 Статистика на продажбите</h3>
-                    <div class="flex items-center gap-2">
-                        <select id="stats-period" class="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-bold focus:outline-slate-500">
-                            <option value="today">Днес</option>
-                            <option value="week">Последните 7 дни</option>
-                            <option value="month">Последните 30 дни</option>
-                            <option value="all">Всичко</option>
-                        </select>
-                        <button id="stats-refresh-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
-                            Опресни
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div id="stats-summary" class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
-                        <div class="bg-slate-50 rounded-xl p-3 text-center">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Поръчки</p>
-                            <p id="stats-orders-count" class="text-xl font-black text-slate-800">0</p>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3 text-center">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Продадени бр.</p>
-                            <p id="stats-items-count" class="text-xl font-black text-slate-800">0</p>
-                        </div>
-                        <div class="bg-slate-50 rounded-xl p-3 text-center col-span-2 sm:col-span-1">
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Оборот</p>
-                            <p id="stats-total-revenue" class="text-xl font-black text-amber-600">0.00 €</p>
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                                <tr>
-                                    <th class="p-2">Артикул</th>
-                                    <th class="p-2 text-center">Продадени бр.</th>
-                                    <th class="p-2 text-right">Оборот</th>
-                                </tr>
-                            </thead>
-                            <tbody id="stats-items-table" class="divide-y divide-gray-100">
-                                <!-- Динамични редове -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <p id="stats-empty" class="hidden text-center text-gray-400 text-sm py-6">Няма завършени поръчки за избрания период.</p>
-                </div>
-            </div>
-
-            <!-- ============================================================ -->
-            <!-- СКЛАД (нова секция) -->
-            <!-- ============================================================ -->
-            <div id="module-section-inventory" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100 flex flex-col sm:flex-row gap-3 items-center justify-between">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📦 Склад</h3>
-                    <div class="flex items-center gap-2">
-                        <span id="inventory-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 артикула</span>
-                        <button id="toggle-supplier-form-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
-                            ➕ Доставчик
-                        </button>
-                        <button id="toggle-inventory-item-form-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
-                            ➕ Артикул
-                        </button>
-                        <button id="toggle-receipt-form-btn" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
-                            ➕ Ново зареждане
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ФОРМА ЗА НОВ ДОСТАВЧИК (скрита по подразбиране) -->
-                <div id="supplier-form-wrapper" class="hidden p-4 border-b border-gray-100 bg-slate-50 space-y-3">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Име на доставчик</label>
-                            <input type="text" id="new-supplier-name" placeholder="напр. Мет Кеш & Кери" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Контакт (незадължително)</label>
-                            <input type="text" id="new-supplier-contact" placeholder="телефон / имейл" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        </div>
-                    </div>
-                    <p id="supplier-error" class="text-xs text-red-600 font-semibold hidden"></p>
-                    <div class="flex justify-end gap-2">
-                        <button id="cancel-supplier-btn" type="button" class="text-xs font-bold text-gray-500 px-3 py-2 cursor-pointer">Отказ</button>
-                        <button id="save-supplier-btn" type="button" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">
-                            💾 Запази доставчик
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ФОРМА ЗА НОВ/РЕДАКТИРАН СКЛАДОВ АРТИКУЛ (скрита по подразбиране) -->
-                <div id="inventory-item-form-wrapper" class="hidden p-4 border-b border-gray-100 bg-slate-50 space-y-3">
-                    <input type="hidden" id="editing-inventory-item-id">
-                    <h4 id="inventory-item-form-title" class="text-xs font-black text-slate-700 uppercase tracking-wider">Нов складов артикул</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Свързан продукт от менюто (незадължително)</label>
-                            <select id="new-item-menu-link" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                                <option value="">— без връзка с менюто —</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Име на складовия артикул</label>
-                            <input type="text" id="new-item-name" placeholder="напр. Кафе на зърна" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Мерна единица (в която купуваш)</label>
-                            <select id="new-item-unit" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                                <option value="бр">бр</option>
-                                <option value="л">л</option>
-                                <option value="кг">кг</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Текуща наличност</label>
-                            <input type="number" step="0.01" id="new-item-stock" placeholder="0" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                            <p class="text-[10px] text-gray-400 mt-1 pl-1">За нов артикул: началната наличност. За редакция: ръчна корекция (напр. след инвентаризация).</p>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Праг за ниска наличност</label>
-                            <input type="number" step="0.01" min="0" id="new-item-min-stock" placeholder="напр. 4" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Разход за 1 продажба (в същата мерна единица)</label>
-                            <input type="number" step="0.0001" min="0" id="new-item-usage" placeholder="напр. 0.008 за 8г кафе от 1 кг" class="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                            <p id="usage-calc-hint" class="text-[11px] text-slate-500 mt-1 pl-1">Остави 1, ако продажбата = 1 цяла единица (напр. 1 бутилка бира)</p>
-                        </div>
-                    </div>
-                    <p id="inventory-item-error" class="text-xs text-red-600 font-semibold hidden"></p>
-                    <div class="flex justify-end gap-2">
-                        <button id="cancel-inventory-item-btn" type="button" class="text-xs font-bold text-gray-500 px-3 py-2 cursor-pointer">Отказ</button>
-                        <button id="save-inventory-item-btn" type="button" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">
-                            💾 Запази артикул
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ФОРМА ЗА НОВО ЗАРЕЖДАНЕ (скрита по подразбиране) -->
-                <div id="receipt-form-wrapper" class="hidden p-4 border-b border-gray-100 bg-amber-50/40 space-y-3">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Доставчик</label>
-                            <select id="receipt-supplier" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                                <option value="">— без доставчик —</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Номер на фактура</label>
-                            <input type="text" id="receipt-invoice" placeholder="напр. 0001234" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Артикули</label>
-                        <div id="receipt-lines" class="space-y-2">
-                            <!-- Динамични редове, добавени от JS -->
-                        </div>
-                        <button id="add-receipt-line-btn" type="button" class="text-xs font-bold text-amber-700 mt-2 cursor-pointer">+ Добави ред</button>
-                    </div>
-
-                    <p id="receipt-error" class="text-xs text-red-600 font-semibold hidden"></p>
-
-                    <div class="flex justify-end gap-2 pt-1">
-                        <button id="cancel-receipt-btn" type="button" class="text-xs font-bold text-gray-500 px-3 py-2 cursor-pointer">Отказ</button>
-                        <button id="save-receipt-btn" type="button" class="bg-green-600 hover:bg-green-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">
-                            💾 Запази зареждане
-                        </button>
-                    </div>
-                </div>
-
-                <!-- ТАБЛИЦА С НАЛИЧНОСТИ -->
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                            <tr>
-                                <th class="p-3">Артикул</th>
-                                <th class="p-3 text-center">Наличност</th>
-                                <th class="p-3 text-center">Порции</th>
-                                <th class="p-3">Ниво</th>
-                                <th class="p-3 text-right">Посл. покупна цена</th>
-                                <th class="p-3 text-right">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody id="inventory-table" class="divide-y divide-gray-100">
-                            <!-- Динамични редове -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <!-- ============================================================ -->
-            <!-- КРАЙ НА СКЛАД СЕКЦИЯТА -->
-            <!-- ============================================================ -->
-
-            <!-- ============================================================ -->
-            <!-- ЕЗИЦИ / ПРЕВОД (нова секция) -->
-            <!-- ============================================================ -->
-            <div id="module-section-languages" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">🌍 Езици на менюто</h3>
-                </div>
-                <div class="p-4 space-y-4">
-                    <p class="text-xs text-gray-500">Избери езици, на които клиентите ще виждат менюто. Преводът е автоматичен (DeepL) и се пази — не се превежда наново при всяко зареждане.</p>
-                    <div id="language-checkboxes" class="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                        <!-- Динамично попълнено от JS -->
-                    </div>
-                    <div class="flex items-center gap-2">
-                        <button id="save-languages-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">💾 Запази езици</button>
-                        <button id="translate-menu-btn" class="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">🌍 Преведи менюто</button>
-                    </div>
-                    <p id="translate-status" class="text-xs text-gray-500 hidden"></p>
-                    <p id="translate-error" class="text-xs text-red-600 font-semibold hidden"></p>
-                </div>
-            </div>
-            <!-- ============================================================ -->
-            <!-- КРАЙ НА ЕЗИЦИ СЕКЦИЯТА -->
-            <!-- ============================================================ -->
-
-            <!-- ============================================================ -->
-            <!-- РЕЗЕРВАЦИИ (нова секция) -->
-            <!-- ============================================================ -->
-            <div id="module-section-reservations" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100 flex items-center justify-between">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">📅 Резервации</h3>
-                    <span id="reservations-count" class="text-[10px] bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded-full">0 чакащи</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left text-sm">
-                        <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                            <tr>
-                                <th class="p-3">Клиент</th>
-                                <th class="p-3">Дата/час</th>
-                                <th class="p-3 text-center">Хора</th>
-                                <th class="p-3">Бележка</th>
-                                <th class="p-3 text-center">Статус</th>
-                                <th class="p-3 text-right">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody id="reservations-table" class="divide-y divide-gray-100"></tbody>
-                    </table>
-                </div>
-                <p id="reservations-empty" class="hidden text-center text-gray-400 text-sm py-6">Няма резервации.</p>
-            </div>
-            <!-- ============================================================ -->
-            <!-- КРАЙ НА РЕЗЕРВАЦИИ СЕКЦИЯТА -->
-            <!-- ============================================================ -->
-
-            <!-- ============================================================ -->
-            <!-- СМЕНИ (нова секция) -->
-            <!-- ============================================================ -->
-            <div id="module-section-shifts" class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div class="p-4 bg-slate-50 border-b border-gray-100">
-                    <h3 class="text-xs font-black text-slate-700 uppercase tracking-wider">👥 Смени</h3>
-                </div>
-
-                <!-- ПОДТАБОВЕ: Персонал / Работни смени / Каса -->
-                <div class="flex border-b border-gray-100">
-                    <button data-shifts-tab="staff" class="shifts-tab-btn flex-1 py-2.5 text-xs font-bold text-slate-700 bg-slate-100 cursor-pointer">Персонал</button>
-                    <button data-shifts-tab="schedule" class="shifts-tab-btn flex-1 py-2.5 text-xs font-bold text-gray-500 cursor-pointer">График</button>
-                    <button data-shifts-tab="cash" class="shifts-tab-btn flex-1 py-2.5 text-xs font-bold text-gray-500 cursor-pointer">Каса</button>
-                </div>
-
-                <!-- ПАНЕЛ: ПЕРСОНАЛ -->
-                <div id="shifts-panel-staff" class="p-4 space-y-3">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-                        <input type="text" id="new-staff-name" placeholder="Име на служител" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        <input type="text" id="new-staff-role" placeholder="Роля (напр. сервитьор)" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        <button id="add-staff-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">➕ Добави служител</button>
-                    </div>
-                    <p id="staff-error" class="text-xs text-red-600 font-semibold hidden"></p>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                                <tr>
-                                    <th class="p-2">Име</th>
-                                    <th class="p-2">Роля</th>
-                                    <th class="p-2 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="staff-table" class="divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- ПАНЕЛ: ГРАФИК -->
-                <div id="shifts-panel-schedule" class="hidden p-4 space-y-3">
-                    <div class="grid grid-cols-2 md:grid-cols-5 gap-2">
-                        <select id="new-shift-staff" class="md:col-span-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                            <option value="">— избери служител —</option>
-                        </select>
-                        <input type="date" id="new-shift-date" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        <input type="time" id="new-shift-start" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                        <input type="time" id="new-shift-end" class="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500">
-                    </div>
-                    <button id="add-shift-btn" class="bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">➕ Добави смяна</button>
-                    <p id="shift-error" class="text-xs text-red-600 font-semibold hidden"></p>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm">
-                            <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                                <tr>
-                                    <th class="p-2">Служител</th>
-                                    <th class="p-2">Дата</th>
-                                    <th class="p-2">Часове</th>
-                                    <th class="p-2 text-right">Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody id="schedule-table" class="divide-y divide-gray-100"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- ПАНЕЛ: КАСА -->
-                <div id="shifts-panel-cash" class="hidden p-4 space-y-4">
-                    <!-- Текущо състояние -->
-                    <div id="cash-shift-status" class="rounded-xl border border-gray-200 p-4 bg-slate-50">
-                        <!-- Динамично попълнено от JS -->
-                    </div>
-                    <p id="cash-error" class="text-xs text-red-600 font-semibold hidden"></p>
-
-                    <div>
-                        <h4 class="text-xs font-black text-slate-700 uppercase tracking-wider mb-2">История на сменитe</h4>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-left text-sm">
-                                <thead class="bg-gray-50 text-[11px] font-bold text-gray-500 uppercase tracking-wider border-b border-gray-100">
-                                    <tr>
-                                        <th class="p-2">Отворена</th>
-                                        <th class="p-2">Затворена</th>
-                                        <th class="p-2 text-right">Начална</th>
-                                        <th class="p-2 text-right">Очаквана</th>
-                                        <th class="p-2 text-right">Преброена</th>
-                                        <th class="p-2 text-right">Разлика</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="cash-history-table" class="divide-y divide-gray-100"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- ============================================================ -->
-            <!-- КРАЙ НА СМЕНИ СЕКЦИЯТА -->
-            <!-- ============================================================ -->
-
+            <label class="check-row" for="item-available">Наличен в менюто<input type="checkbox" id="item-available" class="switch" checked></label>
+            <button type="submit" id="submit-form-btn" class="btn btn-primary" style="width:100%;height:52px;margin-top:18px">Добави към менюто</button>
+          </form>
         </div>
-    </main>
+      </aside>
+    </section>
 
-    <!-- Добави това преди </body> -->
-    <script src="admin.js"></script>
+    <!-- ===== ПРОДАЖБИ ===== -->
+    <section id="module-section-stats" class="view off hidden" data-view="stats">
+      <div class="view-head">
+        <div><h1>Продажби</h1><p>Оборот и най-продавани артикули от завършените поръчки.</p></div>
+        <div class="view-tools">
+          <select id="stats-period">
+            <option value="today">Днес</option>
+            <option value="week">Последните 7 дни</option>
+            <option value="month">Последните 30 дни</option>
+            <option value="all">Всичко</option>
+          </select>
+          <button id="stats-refresh-btn" class="btn btn-ghost" type="button"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6"/></svg>Опресни</button>
+        </div>
+      </div>
+      <div id="stats-summary">
+        <div class="kpi hero"><p>Оборот</p><p id="stats-total-revenue">0.00 €</p></div>
+        <div class="kpi"><p>Поръчки</p><p id="stats-orders-count">0</p></div>
+        <div class="kpi"><p>Продадени бр.</p><p id="stats-items-count">0</p></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>По артикули</h3></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Артикул</th><th class="c">Продадени бр.</th><th class="r">Оборот</th></tr></thead>
+            <tbody id="stats-items-table"></tbody>
+          </table>
+        </div>
+        <p id="stats-empty" class="empty hidden">Няма завършени поръчки за избрания период.</p>
+      </div>
+    </section>
+
+    <!-- ===== РЕЗЕРВАЦИИ ===== -->
+    <section id="module-section-reservations" class="view off hidden" data-view="reservations">
+      <div class="view-head">
+        <div><h1>Резервации</h1><p>Заявките от менюто. Потвърди ги по телефона и маркирай тук.</p></div>
+        <span id="reservations-count" class="pill-count">0 чакащи</span>
+      </div>
+      <div class="card">
+        <div class="table-wrap" style="margin-top:0">
+          <table>
+            <thead><tr><th>Клиент</th><th>Дата / час</th><th class="c">Хора</th><th>Бележка</th><th class="c">Статус</th><th class="r">Действия</th></tr></thead>
+            <tbody id="reservations-table"></tbody>
+          </table>
+        </div>
+        <p id="reservations-empty" class="empty hidden">Няма резервации.</p>
+      </div>
+    </section>
+
+    <!-- ===== СКЛАД ===== -->
+    <section id="module-section-inventory" class="view off hidden" data-view="inventory">
+      <div class="view-head">
+        <div><h1>Склад</h1><p>Наличности, доставчици и зареждания. Продажбите изписват автоматично.</p></div>
+        <div class="view-tools">
+          <span id="inventory-count" class="pill-count">0 артикула</span>
+          <button id="toggle-supplier-form-btn" class="btn btn-ghost" type="button">Доставчик</button>
+          <button id="toggle-inventory-item-form-btn" class="btn btn-ghost" type="button">Складов артикул</button>
+          <button id="toggle-receipt-form-btn" class="btn btn-dark" type="button">Ново зареждане</button>
+        </div>
+      </div>
+
+      <div id="supplier-form-wrapper" class="card inline-card hidden">
+        <h4>Нов доставчик</h4>
+        <div class="grid2">
+          <label class="fld"><span>Име на доставчик</span><input type="text" id="new-supplier-name" placeholder="напр. Метро"></label>
+          <label class="fld"><span>Контакт (незадължително)</span><input type="text" id="new-supplier-contact" placeholder="телефон / имейл"></label>
+        </div>
+        <p id="supplier-error" class="err hidden"></p>
+        <div class="btn-row end">
+          <button id="cancel-supplier-btn" type="button" class="btn btn-quiet">Отказ</button>
+          <button id="save-supplier-btn" type="button" class="btn btn-primary">Запази доставчик</button>
+        </div>
+      </div>
+
+      <div id="inventory-item-form-wrapper" class="card inline-card hidden">
+        <input type="hidden" id="editing-inventory-item-id">
+        <h4 id="inventory-item-form-title">Нов складов артикул</h4>
+        <div class="grid2">
+          <label class="fld span2"><span>Свързан продукт от менюто (незадължително)</span>
+            <select id="new-item-menu-link"><option value="">— без връзка с менюто —</option></select></label>
+          <label class="fld"><span>Име на складовия артикул</span><input type="text" id="new-item-name" placeholder="напр. Кафе на зърна"></label>
+          <label class="fld"><span>Мерна единица (в която купуваш)</span>
+            <select id="new-item-unit"><option value="бр">бр</option><option value="л">л</option><option value="кг">кг</option></select></label>
+          <div class="fld"><label class="fld-label" for="new-item-stock">Текуща наличност</label><input type="number" step="0.01" id="new-item-stock" placeholder="0">
+            <p class="hint">За нов артикул е началната наличност. При редакция е ръчна корекция след инвентаризация.</p></div>
+          <label class="fld"><span>Праг за ниска наличност</span><input type="number" step="0.01" min="0" id="new-item-min-stock" placeholder="напр. 4"></label>
+          <div class="fld span2"><label class="fld-label" for="new-item-usage">Разход за 1 продажба (в същата мерна единица)</label><input type="number" step="0.0001" min="0" id="new-item-usage" placeholder="напр. 0.008 за 8 г кафе от 1 кг">
+            <p id="usage-calc-hint" class="hint">Остави 1, ако продажбата е 1 цяла единица (напр. 1 бутилка бира).</p></div>
+        </div>
+        <p id="inventory-item-error" class="err hidden"></p>
+        <div class="btn-row end">
+          <button id="cancel-inventory-item-btn" type="button" class="btn btn-quiet">Отказ</button>
+          <button id="save-inventory-item-btn" type="button" class="btn btn-primary">Запази артикул</button>
+        </div>
+      </div>
+
+      <div id="receipt-form-wrapper" class="card inline-card hidden">
+        <h4>Ново зареждане</h4>
+        <div class="grid2">
+          <label class="fld"><span>Доставчик</span><select id="receipt-supplier"><option value="">— без доставчик —</option></select></label>
+          <label class="fld"><span>Номер на фактура</span><input type="text" id="receipt-invoice" placeholder="напр. 0001234"></label>
+        </div>
+        <div class="fld">
+          <span class="fld-label">Артикули</span>
+          <div id="receipt-lines"></div>
+          <button id="add-receipt-line-btn" type="button" class="btn btn-ghost">+ Добави ред</button>
+        </div>
+        <p id="receipt-error" class="err hidden"></p>
+        <div class="btn-row end">
+          <button id="cancel-receipt-btn" type="button" class="btn btn-quiet">Отказ</button>
+          <button id="save-receipt-btn" type="button" class="btn btn-primary">Запази зареждане</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap" style="margin-top:0">
+          <table>
+            <thead><tr><th>Артикул</th><th class="c">Наличност</th><th class="c">Порции</th><th class="c">Ниво</th><th class="r">Посл. покупна цена</th><th class="r">Действия</th></tr></thead>
+            <tbody id="inventory-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ЕКИП И КАСА ===== -->
+    <section id="module-section-shifts" class="view off hidden" data-view="shifts">
+      <div class="view-head">
+        <div><h1>Екип и каса</h1><p>Служители, график на смените и отчет на касата.</p></div>
+      </div>
+      <div class="seg" role="tablist">
+        <button data-shifts-tab="staff" class="shifts-tab-btn bg-slate-100 text-slate-700" type="button">Персонал</button>
+        <button data-shifts-tab="schedule" class="shifts-tab-btn text-gray-500" type="button">График</button>
+        <button data-shifts-tab="cash" class="shifts-tab-btn text-gray-500" type="button">Каса</button>
+      </div>
+
+      <div id="shifts-panel-staff" class="card">
+        <h3>Персонал</h3>
+        <div class="grid3" style="align-items:end">
+          <label class="fld"><span>Име</span><input type="text" id="new-staff-name" placeholder="Име на служител"></label>
+          <label class="fld"><span>Роля</span><input type="text" id="new-staff-role" placeholder="напр. сервитьор"></label>
+          <div class="fld"><button id="add-staff-btn" class="btn btn-primary" type="button" style="width:100%;height:46px">Добави служител</button></div>
+        </div>
+        <p id="staff-error" class="err hidden"></p>
+        <div class="table-wrap">
+          <table><thead><tr><th>Име</th><th>Роля</th><th class="r">Действия</th></tr></thead><tbody id="staff-table"></tbody></table>
+        </div>
+      </div>
+
+      <div id="shifts-panel-schedule" class="card hidden">
+        <h3>График</h3>
+        <div class="grid2">
+          <label class="fld span2"><span>Служител</span><select id="new-shift-staff"><option value="">— избери служител —</option></select></label>
+          <label class="fld span2"><span>Дата</span><input type="date" id="new-shift-date"></label>
+          <label class="fld"><span>От</span><input type="time" id="new-shift-start"></label>
+          <label class="fld"><span>До</span><input type="time" id="new-shift-end"></label>
+        </div>
+        <button id="add-shift-btn" class="btn btn-primary" type="button" style="margin-top:16px">Добави смяна</button>
+        <p id="shift-error" class="err hidden"></p>
+        <div class="table-wrap">
+          <table><thead><tr><th>Служител</th><th>Дата</th><th>Часове</th><th class="r">Действия</th></tr></thead><tbody id="schedule-table"></tbody></table>
+        </div>
+      </div>
+
+      <div id="shifts-panel-cash" class="card hidden">
+        <h3>Каса</h3>
+        <div id="cash-shift-status" style="margin-top:14px"></div>
+        <p id="cash-error" class="err hidden"></p>
+        <h4 style="margin-top:26px">История на смените</h4>
+        <div class="table-wrap">
+          <table><thead><tr><th>Отворена</th><th>Затворена</th><th class="r">Начална</th><th class="r">Очаквана</th><th class="r">Преброена</th><th class="r">Разлика</th></tr></thead><tbody id="cash-history-table"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== ЕЗИЦИ ===== -->
+    <section id="module-section-languages" class="view off hidden" data-view="languages">
+      <div class="view-head">
+        <div><h1>Езици</h1><p>Гостите избират език в менюто. Преводът е автоматичен (DeepL) и се пази, не се превежда при всяко зареждане.</p></div>
+      </div>
+      <div class="card">
+        <h3>Езици на менюто</h3>
+        <div id="language-checkboxes"></div>
+        <div class="btn-row">
+          <button id="save-languages-btn" class="btn btn-ghost" type="button">Запази езици</button>
+          <button id="translate-menu-btn" class="btn btn-primary" type="button">Преведи менюто</button>
+        </div>
+        <p id="translate-status" class="status-line ok-text hidden"></p>
+        <p id="translate-error" class="err hidden"></p>
+      </div>
+    </section>
+
+    <!-- ===== НАСТРОЙКИ ===== -->
+    <section class="view off" data-view="settings">
+      <div class="view-head">
+        <div><h1>Настройки</h1><p>Как изглежда заведението в менюто и кои модули ползваш.</p></div>
+      </div>
+      <div class="card">
+        <h3>Име на заведението</h3>
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap">
+          <label class="fld" style="flex:1;min-width:220px"><span>Показва се най-горе в менюто</span><input type="text" id="restaurant-name-input" placeholder="напр. Бистро Орех"></label>
+          <button id="save-res-name-btn" class="btn btn-primary" type="button" style="height:46px">Запази името</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Снимка на заведението</h3>
+        <p class="lead">Показва се като кръгъл медальон над името в менюто. Незадължително.</p>
+        <div class="fld">
+          <label class="drop">
+            <input type="file" id="bg-image-file" accept="image/*">
+            <span class="ic"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></svg></span>
+            <span><span data-file-label>Избери снимка</span><small>JPG или PNG</small></span>
+          </label>
+          <img id="bg-image-preview" src="" alt="" class="preview hidden" style="width:180px;height:180px;border-radius:50%">
+        </div>
+        <div class="btn-row">
+          <button id="save-bg-btn" class="btn btn-primary" type="button">Запази снимката</button>
+          <button id="remove-bg-btn" class="btn btn-danger" type="button">Премахни</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Модули</h3>
+        <p class="lead">Изключи модул, който не ползваш, и той изчезва от таблото.</p>
+        <div id="module-toggle-list"></div>
+        <div class="btn-row"><button id="save-modules-btn" class="btn btn-primary" type="button">Запази модулите</button></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="admin.js"></script>
+<script>
+/* =========================================================
+   Обвивка на админ панела: навигация, известия, сесия, изход.
+   Не пипа логиката в admin.js — само я обгръща.
+   ========================================================= */
+(function () {
+  const $ = id => document.getElementById(id);
+  const TITLES = { menu: "Меню", stats: "Продажби", reservations: "Резервации", inventory: "Склад", shifts: "Екип и каса", languages: "Езици", settings: "Настройки" };
+  const EMOJI = /^[\s\p{Extended_Pictographic}\u200d\ufe0f\u20e3]+/u;
+
+  /* ---- Известия вместо alert() ---- */
+  function toast(msg) {
+    const text = String(msg ?? "");
+    const isErr = /грешка|моля|error|въведи|избери|попълни/i.test(text);
+    const el = document.createElement("div");
+    el.className = "toast" + (isErr ? " err-t" : "");
+    el.setAttribute("role", isErr ? "alert" : "status");
+    el.innerHTML = `<i>${isErr ? "!" : "✓"}</i><span></span>`;
+    el.querySelector("span").textContent = text.replace(EMOJI, "");
+    $("toasts").appendChild(el);
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 260); }, isErr ? 5200 : 3200);
+  }
+  window.alert = toast;
+
+  /* ---- Изгледи ---- */
+  const views = () => Array.from(document.querySelectorAll(".view[data-view]"));
+  const isAvailable = name => { const v = document.querySelector(`.view[data-view="${name}"]`); return v && !v.classList.contains("hidden"); };
+  let current = null;
+  function go(name, push = true) {
+    if (!TITLES[name] || !isAvailable(name)) name = "menu";
+    current = name;
+    views().forEach(v => v.classList.toggle("off", v.dataset.view !== name));
+    document.querySelectorAll("#nav [data-go]").forEach(b => b.setAttribute("aria-current", b.dataset.go === name ? "page" : "false"));
+    $("topbar-title").textContent = TITLES[name];
+    document.title = TITLES[name] + " | Меню Мениджър";
+    if (push && location.hash !== "#" + name) history.replaceState(null, "", "#" + name);
+    document.body.classList.remove("drawer");
+    window.scrollTo(0, 0);
+  }
+  function syncNav() {
+    document.querySelectorAll("#nav [data-module]").forEach(b => { b.classList.toggle("hidden", !isAvailable(b.dataset.go)); });
+    if (current && !isAvailable(current)) go("menu");
+  }
+  $("nav").addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b) go(b.dataset.go); });
+  $("menu-btn").addEventListener("click", () => document.body.classList.add("drawer"));
+  $("scrim").addEventListener("click", () => document.body.classList.remove("drawer"));
+  document.addEventListener("keydown", e => { if (e.key === "Escape") document.body.classList.remove("drawer"); });
+  // Когато admin.js включи/изключи модул, навигацията следва
+  new MutationObserver(syncNav).observe(document.querySelector(".main"), { subtree: true, attributes: true, attributeFilter: ["class"] });
+  // Редакция на артикул от друг изглед → отвори формата
+  const origEdit = window.editItem;
+  if (typeof origEdit === "function") window.editItem = function () { go("menu"); const r = origEdit.apply(this, arguments); document.body.classList.add("item-open"); return r; };
+
+  /* ---- Чекмедже за артикул ---- */
+  const form = $("add-item-form");
+  let savingItem = false;
+  function openItem() { document.body.classList.add("item-open"); setTimeout(() => $("item-name").focus({ preventScroll: true }), 300); }
+  function closeItem() { document.body.classList.remove("item-open"); }
+  function resetItemForm() {
+    form.reset(); $("item-id").value = ""; $("item-image").value = "";
+    $("item-image-preview").classList.add("hidden");
+    $("form-title").textContent = "Добавяне на нов артикул";
+    $("submit-form-btn").textContent = "Добави към менюто";
+    document.querySelectorAll("#item-drawer [data-file-label]").forEach(l => l.textContent = l.dataset.orig);
+  }
+  $("new-item-btn").addEventListener("click", () => { resetItemForm(); openItem(); });
+  $("item-drawer-close").addEventListener("click", closeItem);
+  $("item-scrim").addEventListener("click", closeItem);
+  document.addEventListener("keydown", e => { if (e.key === "Escape") closeItem(); });
+  form.addEventListener("submit", () => { savingItem = true; });
+  new MutationObserver(() => {
+    if (savingItem && $("form-title").textContent === "Добавяне на нов артикул" && !$("submit-form-btn").disabled) {
+      savingItem = false; closeItem(); toast("Артикулът е запазен.");
+    }
+  }).observe($("item-drawer"), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["disabled"] });
+
+  /* ---- Чистим емоджи от бутоните, които admin.js пренаписва ---- */
+  function cleanButtons(root) {
+    root.querySelectorAll("button, #module-toggle-list label > span").forEach(b => {
+      if (b.children.length) return;
+      const t = b.textContent, c = t.replace(EMOJI, "");
+      if (c !== t && c.trim()) b.textContent = c;
+    });
+  }
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.target.nodeType === 1) cleanButtons(m.target.closest ? (m.target.closest("button")?.parentElement || m.target) : document.body);
+    }
+  }).observe($("admin-dashboard"), { subtree: true, childList: true });
+
+  /* ---- Име на заведението в страничната лента ---- */
+  function syncVenue() { const v = $("restaurant-name-input").value.trim(); $("venue-name").textContent = v || "—"; }
+  $("save-res-name-btn").addEventListener("click", () => setTimeout(syncVenue, 50));
+  function pollVenue(n = 0) { syncVenue(); if (!$("restaurant-name-input").value && n < 20) setTimeout(() => pollVenue(n + 1), 400); }
+
+  /* ---- Име на избрания файл ---- */
+  document.querySelectorAll(".drop input[type=file]").forEach(inp => inp.addEventListener("change", () => {
+    const lbl = inp.closest(".drop").querySelector("[data-file-label]");
+    if (lbl) lbl.textContent = inp.files && inp.files[0] ? inp.files[0].name : lbl.dataset.orig || lbl.textContent;
+  }));
+  document.querySelectorAll("[data-file-label]").forEach(l => l.dataset.orig = l.textContent);
+
+  /* ---- Вход: Enter, запазена сесия, изход ---- */
+  $("login-password").addEventListener("keydown", e => { if (e.key === "Enter") $("login-btn").click(); });
+  $("login-email").addEventListener("keydown", e => { if (e.key === "Enter") $("login-password").focus(); });
+
+  let entered = false;
+  function onEnter() {
+    if (entered) return; entered = true;
+    go((location.hash || "").slice(1) || "menu", false);
+    setTimeout(() => go((location.hash || "").slice(1) || current || "menu", false), 1200); // след като модулите се заредят
+    pollVenue();
+  }
+  new MutationObserver(() => { if (!$("admin-dashboard").classList.contains("hidden")) onEnter(); })
+    .observe($("admin-dashboard"), { attributes: true, attributeFilter: ["class"] });
+
+  $("logout-btn").addEventListener("click", async () => {
+    try { await supabaseClient.auth.signOut(); } catch (e) {}
+    location.hash = ""; location.reload();
+  });
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      if (!data || !data.session) return;
+      try { currentUserEmail = data.session.user.email; } catch (e) {}
+      $("login-card").classList.add("hidden");
+      $("admin-dashboard").classList.remove("hidden");
+      ["fetchAndRender", "loadRestaurantName", "loadBackgroundImage", "loadModuleSettings", "loadSalesStats",
+       "fetchAndRenderInventory", "loadSuppliersIntoForm", "loadMenuItemsIntoInventoryForm", "fetchAndRenderStaff",
+       "fetchAndRenderSchedule", "fetchAndRenderCashHistory", "renderCashShiftStatus", "loadLanguageSettings",
+       "fetchAndRenderReservations"].forEach(fn => { try { if (typeof window[fn] === "function") window[fn](); } catch (e) { console.error(fn, e); } });
+    } catch (e) { console.error("Сесия:", e); }
+  });
+})();
+</script>
 </body>
 </html>
