@@ -1,81 +1,324 @@
 <!DOCTYPE html>
 <html lang="bg">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Поръчки - Дигитално Меню</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        .order-notification-card {
-            animation: slideIn 0.3s ease-out;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#F3F4F7">
+<meta name="robots" content="noindex, nofollow">
+<title>Поръчки на живо</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- Tailwind остава само заради картите, които orders.js генерира; палитрата му е пренастроена по-долу -->
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style type="text/tailwindcss">
+@theme {
+  --font-sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --color-gray-50:#F6F7F9; --color-gray-100:#EEF0F4; --color-gray-200:#E3E7EF; --color-gray-300:#C9CFDB;
+  --color-gray-400:#8C93A6; --color-gray-500:#6B7287; --color-gray-600:#596178; --color-gray-700:#3C4459;
+  --color-gray-800:#252C44; --color-gray-900:#121833; --color-gray-950:#0B1024;
+  --color-slate-50:#F6F7F9; --color-slate-100:#EEF0F4; --color-slate-200:#E3E7EF; --color-slate-300:#C9CFDB;
+  --color-slate-400:#8C93A6; --color-slate-500:#6B7287; --color-slate-600:#3C4459; --color-slate-700:#252C44;
+  --color-slate-800:#121833; --color-slate-900:#0B1024;
+  --color-blue-600:#1E3CB4;
+  --color-amber-50:#F1F4FC; --color-amber-100:#E6EBFA; --color-amber-600:#1E3CB4; --color-amber-700:#162C8A;
+  --color-green-100:#E3F2E9; --color-green-600:#1F7A4D; --color-green-700:#17613C;
+  --color-red-100:#FBE9E7; --color-red-500:#C8372A; --color-red-600:#B42318; --color-red-700:#8F1C13;
+}
+</style>
+<style>
+:root{
+  --porcelain:#F3F4F7; --white:#FFFFFF; --mist:#EEF0F4; --rim:#E3E7EF;
+  --ink:#121833; --ink-2:#596178; --ink-3:#8C93A6;
+  --glaze:#1E3CB4; --glaze-deep:#162C8A; --glaze-soft:#E6EBFA; --glaze-line:#CDD6F3;
+  --ok:#1F7A4D; --ok-soft:#E3F2E9; --alert:#B42318; --alert-soft:#FBE9E7;
+  --serif:"Cormorant Garamond",Georgia,serif;
+  --sans:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  --side:264px;
+  color-scheme:light;
+}
+/* Tailwind е в @layer — тези правила са извън слой и печелят. `hidden` трябва винаги да скрива. */
+.hidden{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--porcelain);color:var(--ink);font:500 14.5px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+button{cursor:pointer}
+:focus-visible{outline:2.5px solid var(--glaze);outline-offset:2px;border-radius:10px}
+.serif{font-family:var(--serif)}
+
+/* ---------- Plate motif ---------- */
+.plate{position:relative;border-radius:50%;background:var(--white);display:grid;place-items:center;box-shadow:0 18px 30px -14px rgba(18,24,51,.4),0 0 0 1px var(--rim);flex:none}
+.plate::before{content:"";position:absolute;inset:12%;border-radius:50%;box-shadow:inset 0 0 0 1px var(--rim)}
+.plate b{position:relative;font-family:var(--serif);font-style:italic;font-weight:500;color:var(--glaze);line-height:1}
+
+/* ---------- Login ---------- */
+.login{min-height:100vh;min-height:100dvh;display:grid;grid-template-columns:1.1fr 1fr}
+.login-art{position:relative;overflow:hidden;display:flex;flex-direction:column;justify-content:space-between;padding:44px 52px;background:var(--white);border-right:1px solid var(--rim)}
+.login-art .rings{position:absolute;right:-220px;bottom:-220px;width:760px;height:760px;color:var(--glaze-line);pointer-events:none}
+.login-art .big{width:300px;height:300px;position:absolute;right:120px;bottom:120px}
+.login-art .big b{font-size:150px}
+.brand{display:flex;align-items:center;gap:12px;font-weight:800;font-size:15px;letter-spacing:.01em}
+.brand .plate{width:40px;height:40px;box-shadow:0 6px 12px -6px rgba(18,24,51,.35),0 0 0 1px var(--rim)}
+.brand .plate::before{inset:4px}
+.brand .plate b{font-size:22px}
+.login-art h1{position:relative;font-family:var(--serif);font-weight:500;font-size:clamp(44px,5vw,72px);line-height:.98;letter-spacing:-.015em;margin:0;max-width:9ch}
+.login-art h1 em{color:var(--glaze)}
+.login-art p{position:relative;color:var(--ink-2);max-width:34ch;margin:18px 0 0;font-size:15px}
+.login-art small{position:relative;color:var(--ink-3);font-size:12.5px}
+.login-form{display:flex;align-items:center;justify-content:center;padding:40px 24px}
+.login-box{width:100%;max-width:380px}
+.login-box h2{font-family:var(--serif);font-weight:500;font-size:40px;line-height:1;margin:0}
+.login-box>p{color:var(--ink-2);margin:10px 0 28px}
+.login-box .btn{width:100%;height:54px;margin-top:22px;font-size:15px}
+.login-back{display:inline-flex;margin-top:22px;color:var(--ink-2);font-size:13.5px;font-weight:600;text-decoration:none}
+.login-back:hover{color:var(--glaze)}
+
+/* ---------- Fields ---------- */
+.fld{display:block;margin-top:14px}
+.fld>span,.fld-label{display:block;font-size:12.5px;font-weight:700;color:var(--ink-2);margin:0 0 7px 2px}
+.hint{font-size:12px;color:var(--ink-3);margin:6px 0 0 2px;line-height:1.45}
+input:not([type=checkbox]):not([type=radio]):not([type=file]),select,textarea{width:100%;min-width:0;height:46px;border:0;border-radius:14px;background:var(--porcelain);padding:0 14px;font:500 14.5px var(--sans);color:var(--ink);box-shadow:inset 0 0 0 1px transparent;transition:box-shadow .15s,background .15s;outline:none}
+select{appearance:none;-webkit-appearance:none;padding-right:34px;background:var(--porcelain) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23596178' stroke-width='1.6'/%3E%3C/svg%3E") right 14px center no-repeat}
+textarea{height:90px;padding:12px 14px;resize:vertical}
+input:not([type=checkbox]):not([type=radio]):not([type=file]):focus,select:focus,textarea:focus{background:var(--white);box-shadow:inset 0 0 0 1.5px var(--glaze)}
+input::placeholder,textarea::placeholder{color:var(--ink-3);font-weight:400}
+.card input:not([type=checkbox]):not([type=radio]):not([type=file]),.card select{background-color:var(--porcelain)}
+input[type=checkbox]{accent-color:var(--glaze);width:18px;height:18px}
+.switch,.module-toggle-checkbox{appearance:none;-webkit-appearance:none;width:44px!important;height:26px!important;border-radius:999px;background:var(--rim);position:relative;cursor:pointer;flex:none;transition:background .2s;margin:0}
+.switch::after,.module-toggle-checkbox::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(18,24,51,.3);transition:transform .22s var(--ease)}
+.switch:checked,.module-toggle-checkbox:checked{background:var(--glaze)}
+.switch:checked::after,.module-toggle-checkbox:checked::after{transform:translateX(18px)}
+.drop{position:relative;display:flex;align-items:center;gap:12px;min-height:64px;padding:12px 14px;border-radius:16px;border:1.5px dashed var(--glaze-line);background:var(--glaze-soft);color:var(--glaze-deep);font-weight:700;font-size:13.5px;cursor:pointer;transition:background .2s,border-color .2s}
+.drop:hover{border-color:var(--glaze);background:#DEE5F8}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.drop .ic{width:38px;height:38px;border-radius:12px;background:var(--white);display:grid;place-items:center;flex:none}
+.drop small{display:block;font-weight:500;color:var(--ink-2);font-size:12px}
+.preview{display:block;width:100%;max-height:200px;object-fit:cover;border-radius:16px;margin-top:10px}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border:0;border-radius:999px;font:700 14px var(--sans);white-space:nowrap;text-decoration:none;transition:background .18s,color .18s,box-shadow .18s}
+.btn-primary{background:var(--glaze);color:#fff}
+.btn-primary:hover{background:var(--glaze-deep)}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-dark:hover{background:var(--glaze)}
+.btn-ghost{background:var(--white);color:var(--ink);box-shadow:inset 0 0 0 1px var(--rim)}
+.btn-ghost:hover{box-shadow:inset 0 0 0 1px var(--glaze-line);color:var(--glaze)}
+.btn-quiet{background:transparent;color:var(--ink-2)}
+.btn-quiet:hover{background:var(--mist);color:var(--ink)}
+.btn-danger{background:var(--alert-soft);color:var(--alert)}
+.btn-danger:hover{background:var(--alert);color:#fff}
+.btn:disabled{opacity:.55;cursor:wait}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+.btn-row.end{justify-content:flex-end}
+
+/* ---------- Toasts ---------- */
+.toasts{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:90;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(460px,calc(100% - 24px))}
+.toast{pointer-events:auto;display:flex;align-items:center;gap:12px;width:100%;padding:14px 16px;border-radius:18px;background:var(--ink);color:#fff;font-weight:600;font-size:14px;box-shadow:0 18px 40px -12px rgba(18,24,51,.55);animation:toastIn .35s var(--ease)}
+.toast i{width:28px;height:28px;border-radius:50%;flex:none;display:grid;place-items:center;background:rgba(255,255,255,.12);font-style:normal}
+.toast.err-t{background:#fff;color:var(--alert);box-shadow:0 18px 40px -12px rgba(18,24,51,.35),inset 0 0 0 1px #F3C9C4}
+.toast.err-t i{background:var(--alert-soft)}
+.toast.out{opacity:0;transform:translateY(8px);transition:all .25s}
+@keyframes toastIn{from{opacity:0;transform:translateY(12px) scale(.98)}}
+
+
+/* ---------- Board shell ---------- */
+.board{min-height:100vh;min-height:100dvh}
+.bar{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:calc(14px + env(safe-area-inset-top)) 28px 14px;background:rgba(243,244,247,.88);-webkit-backdrop-filter:saturate(1.4) blur(14px);backdrop-filter:saturate(1.4) blur(14px);border-bottom:1px solid var(--rim)}
+.bar h1{font-family:var(--serif);font-weight:500;font-size:30px;line-height:1;margin:0 6px 0 0;white-space:nowrap}
+.bar .grow{flex:1}
+.live{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 13px;border-radius:999px;background:var(--ok-soft);color:var(--ok)!important;font-size:12.5px!important;font-weight:800!important;letter-spacing:.02em}
+.live span{width:8px!important;height:8px!important;background:var(--ok)!important}
+.pill-count{display:inline-flex;align-items:center;height:34px;padding:0 14px;border-radius:999px;background:var(--ink)!important;color:#fff!important;font-size:12.5px!important;font-weight:800!important}
+.clock{font-family:var(--serif);font-weight:600;font-size:32px;line-height:1;font-variant-numeric:lining-nums tabular-nums;letter-spacing:.01em}
+.icon-btn{display:inline-flex;align-items:center;gap:8px;height:42px;padding:0 15px;border:0;border-radius:999px;background:var(--white);box-shadow:inset 0 0 0 1px var(--rim);color:var(--ink-2);font:700 13.5px var(--sans);text-decoration:none;white-space:nowrap;transition:color .15s,box-shadow .15s,background .15s}
+.icon-btn:hover{color:var(--glaze);box-shadow:inset 0 0 0 1px var(--glaze-line)}
+#logout-btn:hover{color:var(--alert);box-shadow:inset 0 0 0 1px #F3C9C4}
+#sound-btn.muted{background:var(--alert-soft);color:var(--alert);box-shadow:none}
+#sound-btn.on{color:var(--ok)}
+.board-main{padding:28px 28px 90px;max-width:1600px;margin:0 auto}
+
+/* ---------- Tickets (генерирани от orders.js) ---------- */
+#orders-grid{display:grid!important;grid-template-columns:repeat(auto-fill,minmax(300px,1fr))!important;gap:18px!important;align-items:start}
+#orders-grid>[data-order-id]{position:relative;background:var(--white)!important;border:0!important;border-radius:26px!important;padding:24px 22px 20px!important;gap:14px!important;box-shadow:0 1px 2px rgba(18,24,51,.04),0 0 0 1px rgba(227,231,239,.8),0 20px 40px -30px rgba(18,24,51,.4)!important}
+#orders-grid>[data-order-id]::before{content:"";position:absolute;left:24px;right:24px;top:0;height:4px;border-radius:0 0 6px 6px;background:var(--glaze)}
+#orders-grid>[data-order-id].border-red-300{box-shadow:0 0 0 2px #F0BDB6,0 24px 44px -28px rgba(180,35,24,.45)!important}
+#orders-grid>[data-order-id].border-red-300::before{background:var(--alert)}
+#orders-grid>[data-order-id]>div:first-child{align-items:flex-start!important}
+#orders-grid>[data-order-id]>div:first-child>span:first-child{font-family:var(--serif)!important;font-weight:600!important;font-size:40px!important;line-height:.95!important;color:var(--ink)!important;letter-spacing:-.01em}
+#orders-grid [data-time-label]{display:inline-flex;align-items:center;height:30px;padding:0 12px;border-radius:999px;background:var(--porcelain);color:var(--ink-2)!important;font-size:12.5px!important;font-weight:800!important;white-space:nowrap}
+#orders-grid .border-red-300 [data-time-label]{background:var(--alert);color:#fff!important}
+#orders-grid ul{margin:0;padding:14px 0!important;border-color:var(--mist)!important;border-width:1px 0!important;border-style:dashed!important}
+#orders-grid li{font-size:17px!important;font-weight:600;line-height:1.35;padding:5px 0;gap:14px}
+#orders-grid li span:first-child{color:var(--ink)}
+#orders-grid li span:last-child{color:var(--ink-3)!important;font-size:13.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+#orders-grid>[data-order-id]>div:last-child>span{font-family:var(--serif);font-weight:600;font-size:28px!important;color:var(--ink)!important;font-variant-numeric:lining-nums tabular-nums}
+#orders-grid [data-complete-order]{height:52px;padding:0 26px!important;border-radius:999px!important;background:var(--ok)!important;font-size:15px!important;font-weight:800!important;letter-spacing:.01em;transition:background .15s,transform .1s}
+#orders-grid [data-complete-order]:hover{background:#17613C!important}
+#orders-grid [data-complete-order]:active{transform:scale(.97)}
+.empty-board{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12vh 20px!important;color:var(--ink-2)!important}
+.empty-board .plate{width:170px;height:170px;margin-bottom:26px}
+.empty-board .plate b{font-size:80px}
+.empty-board h2{font-family:var(--serif);font-weight:500;font-style:italic;font-size:clamp(32px,4vw,46px);line-height:1.05;color:var(--ink);margin:0}
+.empty-board p{margin:10px 0 0;font-size:15px}
+
+/* ---------- Нови поръчки (изскачащи) ---------- */
+#order-notifications{top:calc(84px + env(safe-area-inset-top))!important;right:20px!important;width:340px!important;gap:10px!important}
+.order-notification-card{background:var(--ink)!important;border:0!important;border-radius:20px!important;padding:16px!important;color:#fff;align-items:center!important;box-shadow:0 24px 50px -16px rgba(18,24,51,.6)!important;animation:notifIn .45s var(--ease)!important}
+.order-notification-card>div:first-child{width:42px!important;height:42px!important;background:var(--glaze)!important;font-size:0!important;position:relative}
+.order-notification-card>div:first-child::after{content:"";width:19px;height:19px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0'/%3E%3C/svg%3E") center/contain no-repeat}
+.order-notification-card p:first-child{color:#fff!important;font-size:15px!important;font-weight:800!important}
+.order-notification-card p:last-child{color:#AEB5CB!important;font-size:13px!important}
+.dismiss-notification-btn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08)!important;color:#fff!important;font-size:13px}
+@keyframes notifIn{from{opacity:0;transform:translateX(30px) scale(.97)}}
+#enable-notifications-btn{height:48px;padding:0 20px!important;border-radius:999px!important;background:var(--glaze)!important;font-size:14px!important;box-shadow:0 18px 36px -12px rgba(30,60,180,.55)!important;right:20px!important;bottom:calc(20px + env(safe-area-inset-bottom))!important}
+
+@media (max-width:960px){
+  .login{grid-template-columns:1fr}
+  .login-art{min-height:auto;padding:28px 24px 34px;border-right:0;border-bottom:1px solid var(--rim)}
+  .login-art .big,.login-art .rings{display:none}
+  .login-art h1{font-size:42px;margin-top:40px}
+  .login-art small{display:none}
+  .bar{flex-wrap:wrap;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;gap:10px}
+  .bar h1{font-size:26px}
+  .bar .hide-sm{display:none}
+  .clock{font-size:26px}
+  .board-main{padding:18px 14px 90px}
+  .icon-btn span.lbl{display:none}
+  .icon-btn{width:42px;padding:0;justify-content:center}
+  #order-notifications{left:12px!important;right:12px!important;width:auto!important}
+}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
 </head>
-<body class="bg-gray-100 text-gray-950 font-sans min-h-screen flex flex-col">
-    <!-- ХЕДЪР -->
-    <header class="bg-slate-800 text-white py-4 px-6 shadow-md flex justify-between items-center">
-        <h1 class="text-lg font-black tracking-wide">🧾 Активни поръчки</h1>
-        <div class="flex items-center gap-2">
-            <a href="admin.html" class="bg-slate-600 hover:bg-slate-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition">
-                ⚙️ Админ панел
-            </a>
-            <button id="logout-btn" class="hidden bg-red-600 hover:bg-red-700 text-xs font-bold px-3 py-1.5 rounded-lg transition cursor-pointer">
-                Изход
-            </button>
-        </div>
-    </header>
+<body>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<div id="order-notifications" class="fixed z-50 flex flex-col" aria-live="assertive"></div>
+<button id="enable-notifications-btn" class="hidden fixed z-50 text-white font-bold" type="button">Разреши известия на устройството</button>
 
-    <!-- КОНТЕЙНЕР ЗА ИЗСКАЧАЩИ НОТИФИКАЦИИ ЗА НОВИ ПОРЪЧКИ -->
-    <div id="order-notifications" class="fixed top-4 right-4 z-50 flex flex-col gap-2 w-80"></div>
+<!-- ================= ВХОД ================= -->
+<section id="login-card" class="login">
+  <div class="login-art">
+    <svg class="rings" viewBox="0 0 760 760" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="380" cy="380" r="378"/><circle cx="380" cy="380" r="300"/><circle cx="380" cy="380" r="290" stroke-dasharray="2 8"/><circle cx="380" cy="380" r="220"/></svg>
+    <div class="plate big" aria-hidden="true"><b>М</b></div>
+    <div class="brand"><span class="plate"><b>М</b></span>Меню Мениджър</div>
+    <div>
+      <h1>Всяка поръчка, <em>навреме.</em></h1>
+      <p>Поръчките от масите пристигат тук на живо, със звуков сигнал. Отбележи ги като готови с едно докосване.</p>
+    </div>
+    <small>© 2026 Радослав Чакъров | Дигитални решения</small>
+  </div>
+  <div class="login-form">
+    <div class="login-box">
+      <h2>Вход на персонала</h2>
+      <p>Влез, за да виждаш поръчките на живо.</p>
+      <label class="fld"><span>Имейл</span><input type="email" id="login-email" autocomplete="username" placeholder="ime@zavedenie.bg"></label>
+      <label class="fld"><span>Парола</span><input type="password" id="login-password" autocomplete="current-password" placeholder="••••••••"></label>
+      <button id="login-btn" class="btn btn-primary" type="button">Влез в таблото</button>
+      <p id="login-error" class="err hidden"></p>
+      <a href="admin.html" class="login-back">← Към админ панела</a>
+    </div>
+  </div>
+</section>
 
-    <!-- Бутон за разрешаване на системни известия (показва се само ако не са разрешени) -->
-    <button id="enable-notifications-btn" class="hidden fixed bottom-4 right-4 z-50 bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold px-3 py-2 rounded-lg shadow-md cursor-pointer">
-        🔔 Разреши известия
+<!-- ================= ТАБЛО ================= -->
+<div id="orders-dashboard" class="board hidden">
+  <header class="bar">
+    <div class="brand" style="gap:10px"><span class="plate"><b>М</b></span></div>
+    <h1>Поръчки</h1>
+    <span id="orders-count" class="pill-count">0 активни</span>
+    <span id="live-indicator" class="live hide-sm"><span class="rounded-full animate-pulse"></span>На живо</span>
+    <span class="grow"></span>
+    <span class="clock hide-sm" id="clock">--:--</span>
+    <button id="sound-btn" class="icon-btn" type="button" aria-label="Звук за нови поръчки">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path class="wave" d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+      <span class="lbl" id="sound-lbl">Звук</span>
     </button>
+    <a href="admin.html" class="icon-btn"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span class="lbl">Админ панел</span></a>
+    <button id="logout-btn" class="icon-btn hidden" type="button"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg><span class="lbl">Изход</span></button>
+  </header>
 
-    <main class="flex-1 max-w-5xl w-full mx-auto p-4 flex flex-col justify-center">
-        <!-- ФОРМА ЗА ВХОД -->
-        <div id="login-card" class="bg-white p-6 rounded-2xl shadow-xl max-w-md w-full mx-auto space-y-4">
-            <div class="text-center">
-                <h2 class="text-xl font-extrabold text-slate-800">Вход на персонала</h2>
-                <p class="text-xs text-gray-500 mt-1">Въведете вашите админ данни</p>
-            </div>
-            <div class="space-y-3">
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Имейл</label>
-                    <input type="email" id="login-email" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="admin@beachbar.com">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-600 uppercase mb-1">Парола</label>
-                    <input type="password" id="login-password" class="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-slate-500" placeholder="••••••••">
-                </div>
-                <button id="login-btn" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-sm transition shadow-sm cursor-pointer">
-                    Влез в таблото
-                </button>
-                <p id="login-error" class="text-xs text-red-600 text-center font-semibold hidden"></p>
-            </div>
-        </div>
-        <!-- ТАБЛО С ПОРЪЧКИ -->
-        <div id="orders-dashboard" class="hidden w-full space-y-4">
-            <div class="flex items-center justify-between">
-                <span id="orders-count" class="text-xs bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded-full">0 активни</span>
-                <span id="live-indicator" class="text-xs text-green-600 font-bold flex items-center gap-1">
-                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> На живо
-                </span>
-            </div>
-            <div id="orders-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <!-- Динамични карти с поръчки -->
-            </div>
-            <div id="empty-orders" class="hidden text-center py-16 text-gray-400 text-sm">
-                Няма активни поръчки в момента. 🎉
-            </div>
-        </div>
-    </main>
-    <script src="orders.js"></script>
+  <main class="board-main">
+    <div id="orders-grid"></div>
+    <div id="empty-orders" class="empty-board hidden">
+      <div class="plate" aria-hidden="true"><b>✓</b></div>
+      <h2>Няма активни поръчки.</h2>
+      <p>Новите поръчки ще се появят тук автоматично, със звук.</p>
+    </div>
+  </main>
+</div>
+
+<script src="orders.js"></script>
+<script>
+/* Обвивка на таблото: часовник, звук, известия, запазена сесия. Не пипа логиката в orders.js. */
+(function () {
+  const $ = id => document.getElementById(id);
+  const EMOJI = /^[\s\p{Extended_Pictographic}\u200d\ufe0f\u20e3]+/u;
+
+  function toast(msg) {
+    const text = String(msg ?? "");
+    const isErr = /грешка|error/i.test(text);
+    const el = document.createElement("div");
+    el.className = "toast" + (isErr ? " err-t" : "");
+    el.innerHTML = `<i>${isErr ? "!" : "✓"}</i><span></span>`;
+    el.querySelector("span").textContent = text.replace(EMOJI, "");
+    $("toasts").appendChild(el);
+    setTimeout(() => { el.classList.add("out"); setTimeout(() => el.remove(), 260); }, isErr ? 5200 : 3200);
+  }
+  window.alert = toast;
+
+  // Часовник
+  const tick = () => { $("clock").textContent = new Date().toLocaleTimeString("bg-BG", { hour: "2-digit", minute: "2-digit" }); };
+  tick(); setInterval(tick, 10000);
+
+  // Звук: браузърът го пуска само след докосване, затова показваме състоянието ясно
+  function soundState() {
+    const ctx = typeof sharedAudioCtx !== "undefined" ? sharedAudioCtx : null;
+    const on = !!ctx && ctx.state === "running";
+    $("sound-btn").classList.toggle("on", on);
+    $("sound-btn").classList.toggle("muted", !on);
+    $("sound-lbl").textContent = on ? "Звук вкл." : "Включи звука";
+  }
+  function unlockSound() {
+    try { const ctx = getAudioContext(); if (ctx.state === "suspended") ctx.resume().then(soundState); } catch (e) {}
+    setTimeout(soundState, 150);
+  }
+  $("sound-btn").addEventListener("click", () => { unlockSound(); try { playNewOrderSound(); } catch (e) {} });
+  document.addEventListener("pointerdown", unlockSound, { once: true });
+  setInterval(soundState, 3000);
+
+  // Чистим емоджи от бутоните в картите
+  new MutationObserver(() => {
+    document.querySelectorAll("#orders-grid [data-complete-order]").forEach(b => {
+      const t = b.textContent, c = t.replace(EMOJI, "").trim();
+      if (c && c !== t.trim()) b.textContent = c;
+    });
+  }).observe($("orders-grid"), { childList: true });
+
+  // Брой активни в заглавието на таба
+  new MutationObserver(() => { document.title = `(${parseInt($("orders-count").textContent, 10) || 0}) Поръчки на живо`; })
+    .observe($("orders-count"), { childList: true, characterData: true, subtree: true });
+
+  // Вход с Enter
+  $("login-password").addEventListener("keydown", e => { if (e.key === "Enter") $("login-btn").click(); });
+  $("login-email").addEventListener("keydown", e => { if (e.key === "Enter") $("login-password").focus(); });
+
+  // Запазена сесия: не се налага вход след презареждане
+  document.addEventListener("DOMContentLoaded", async () => {
+    soundState();
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      if (!data || !data.session) return;
+      $("login-card").classList.add("hidden");
+      $("orders-dashboard").classList.remove("hidden");
+      $("logout-btn").classList.remove("hidden");
+      fetchOrders();
+      subscribeToOrders();
+      clockInterval = setInterval(refreshTimeLabels, 1000);
+      if (typeof Notification !== "undefined" && Notification.permission === "default") $("enable-notifications-btn").classList.remove("hidden");
+    } catch (e) { console.error("Сесия:", e); }
+  });
+})();
+</script>
 </body>
 </html>
