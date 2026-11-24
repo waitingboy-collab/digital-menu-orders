@@ -219,6 +219,46 @@ button:disabled{cursor:not-allowed}
   .plate-sheet .sheet-scroll{max-height:calc(86vh - 140px);padding-top:134px}
 }
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+/* ===================== WEBGL ВАРИАНТ: порцеланова глазура ===================== */
+#gl-glaze{position:fixed;inset:0;width:100%;height:100vh;height:100lvh;z-index:-1;pointer-events:none;display:block}
+:root{--tilt-shadow:rgba(18,24,51,.30);--tilt-edge:rgba(18,24,51,.06)}
+/* ===================== 3D КАРТИ (изпъкване) ===================== */
+html.fx body{overflow-x:clip}
+html.fx .tilt{position:relative;transition:opacity .7s ease,transform .5s cubic-bezier(.2,.7,.2,1),box-shadow .5s ease}
+html.fx .tilt.tilting,
+html.fx .tilt.rolling:not(.reveal),
+html.fx .tilt.rolling.is-visible{
+  transform:perspective(1000px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) rotate(var(--base,0deg)) translateY(var(--lift,0px)) scale(var(--sc,1));
+}
+html.fx .tilt.tilting{
+  transform-style:preserve-3d;
+  --lift:-8px;--sc:1.015;z-index:2;
+  transition:opacity .7s ease,transform .2s cubic-bezier(.2,.7,.2,1),box-shadow .2s ease;
+  box-shadow:var(--sx,0px) calc(var(--sy,0px) + 28px) 50px -14px var(--tilt-shadow),0 2px 6px rgba(0,0,0,.05);
+}
+html.fx .tilt h3{transition:transform .35s cubic-bezier(.2,.7,.2,1)}
+html.fx .tilt.tilting > h3,
+html.fx .tilt.tilting > * > h3{transform:translateZ(30px)}
+html.fx .tilt .glare{
+  position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .35s ease;
+  background:radial-gradient(circle at var(--gx,50%) var(--gy,0%),rgba(255,255,255,.42),rgba(255,255,255,0) 42%,var(--tilt-edge) 100%);
+}
+html.fx .tilt.tilting .glare{opacity:1}
+html.fx .tilt.rolling .glare{opacity:.6}
+html.fx .tilt.tilting .plate{transform:translateZ(44px) rotate(10deg)}
+html.fx .tilt .plate{z-index:2}
+html.fx .tilt.tilting .fav{transform:translateX(-50%) translateZ(52px)}
+html.fx .dish .plate,html.fx .plate.hero{rotate:var(--prot,0deg);transition:transform .6s var(--ease),rotate .35s var(--ease)}
+/* ===================== НАКЛОН НА ТЕЛЕФОНА ===================== */
+.tilt-ask{position:fixed;left:12px;bottom:calc(var(--tilt-ask-bottom,16px) + env(safe-area-inset-bottom));z-index:80;display:flex;align-items:stretch;
+  background:var(--ink);color:#fff;border-radius:999px;box-shadow:0 10px 30px -8px rgba(0,0,0,.35);animation:tiltAskIn .5s cubic-bezier(.2,.7,.2,1) both;max-width:calc(100vw - 24px)}
+.tilt-ask button{font:600 14px/1.2 inherit;font-family:inherit;color:inherit;background:none;border:0;cursor:pointer;min-height:44px}
+.tilt-ask .go{display:flex;align-items:center;gap:8px;padding:0 6px 0 16px;text-align:left}
+.tilt-ask .x{width:44px;font-size:20px;opacity:.7}
+.tilt-ask button:focus-visible{outline:2px solid #fff;outline-offset:-4px;border-radius:999px}
+@keyframes tiltAskIn{from{opacity:0;transform:translateY(12px)}}
+body.has-bar .tilt-ask{bottom:calc(96px + env(safe-area-inset-bottom))}
 </style>
 </head>
 <body>
@@ -373,5 +413,8 @@ button:disabled{cursor:not-allowed}
   </div>
 </div>
 <script src="app.js"></script>
+<script src="orient.js"></script>
+<script src="webgl.js"></script>
+<script src="tilt.js"></script>
 </body>
 </html>
